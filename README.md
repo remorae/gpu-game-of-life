@@ -3,7 +3,7 @@ A graphical depiction of Conway’s Game of Life written in C++.
 
 ## Features
 * [x] Pause and un-pause the simulation
-* [ ] Click on cells to toggle their state
+* [x] Click on cells to toggle their state
 * [x] Pan the grid
 * [x] Zoom in and out
 * [x] Clear the existing grid

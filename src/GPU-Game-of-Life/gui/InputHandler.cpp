@@ -35,10 +35,11 @@ InputHandler::InputHandler(InputConfig options) :
 void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHandler& graphicsHandler)
 {
     previousMousePosition = currentMousePosition;
-    previousMouseDown = currentMouseDown;
-    currentMouseDown.clear();
+    mouseJustPressed.clear();
+    mouseJustReleased.clear();
 
     sf::Event event;
+    bool mouseMoved = false;
     while (window.pollEvent(event))
     {
         switch (event.type)
@@ -59,47 +60,125 @@ void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHa
                 break;
 
             case sf::Event::MouseButtonPressed:
-                currentMouseDown.push_back(event.mouseButton.button);
-
-                if (event.mouseButton.button == sf::Mouse::Middle)
-                    setPanning(true);
-
-                if (event.mouseButton.button == sf::Mouse::Left)
-                {
-
-                    const bool buttonClicked = checkButtons(event, game.getButtons());
-                    if (!buttonClicked)
-                    {
-                        const auto x = event.mouseButton.x; //?
-                        const auto y = event.mouseButton.y; //?
-
-                        if (std::find(previousMouseDown.begin(), previousMouseDown.end(), sf::Mouse::Left) == previousMouseDown.end())
-                        {
-                            //toggleMode = (game.getCell(x, y) == 1) ? ToggleMode::OFF : ToggleMode::ON;
-                        }
-
-                        //game.setCell(x, y, (toggleMode == ToggleMode::ON) ? 1 : 0);
-                    }
-                }
+                onMousePress(event, game, graphicsHandler);
                 break;
 
             case sf::Event::MouseButtonReleased:
-                if (event.mouseButton.button == sf::Mouse::Middle)
-                    setPanning(false);
-
-                if (event.mouseButton.button == sf::Mouse::Left)
-                    toggleMode = ToggleMode::NONE;
-
+                onMouseRelease(event);
                 break;
 
             case sf::Event::MouseMoved:
-                if ()
-                std::cout << "X: " << event.mouseMove.x << ", Y: " << event.mouseMove.y << "\n";
-                currentMousePosition.x = static_cast<float>(-event.mouseMove.x);
-                currentMousePosition.y = static_cast<float>(-event.mouseMove.y);
-                if (isPanning)
-                    graphicsHandler.handlePan({ currentMousePosition.x - previousMousePosition.x, currentMousePosition.y - previousMousePosition.y });
+                if (options.outputMousePosition)
+                {
+                    std::cout << "X: " << event.mouseMove.x << ", Y: " << event.mouseMove.y << "\n";
+                }
+
+                currentMousePosition.x = static_cast<float>(event.mouseMove.x);
+                currentMousePosition.y = static_cast<float>(event.mouseMove.y);
+                mouseMoved = true;
                 break;
         }
+    }
+
+    if (mouseMoved)
+    {
+        onMouseMove(event, game, graphicsHandler);
+    }
+}
+
+bool InputHandler::mouseButtonDown(const sf::Mouse::Button& button) const
+{
+    return std::find(currentMouseDown.begin(), currentMouseDown.end(), button) != currentMouseDown.end();
+}
+
+bool InputHandler::mouseButtonPressed(const sf::Mouse::Button& button) const
+{
+    return std::find(mouseJustPressed.begin(), mouseJustPressed.end(), button) == mouseJustPressed.end();
+}
+
+bool InputHandler::mouseButtonReleased(const sf::Mouse::Button& button) const
+{
+    return std::find(mouseJustReleased.begin(), mouseJustReleased.end(), button) == mouseJustReleased.end();
+}
+
+namespace
+{
+    void setEditMode(const sf::Vector2<size_t>& position, CellEditMode& mode, const Game& game)
+    {
+        mode = (game.getCell(position.x, position.x) == 1) ? CellEditMode::OFF : CellEditMode::ON;
+    }
+
+    void editCell(const sf::Vector2<size_t>& position, const CellEditMode& mode, Game& game)
+    {
+        game.setCell(position.x, position.y, (mode == CellEditMode::ON) ? 1 : 0);
+    }
+
+    bool mouseOverCell(const Game& game, const GraphicsHandler& graphicsHandler)
+    {
+        const sf::Vector2f position = game.pixelToGridCoordinates() / graphicsHandler.getCellWidth();
+        return position.x >= 0
+            && position.y >= 0
+            && position.x < game.getWidth()
+            && position.y < game.getHeight();
+    }
+
+    sf::Vector2<size_t> getCellAtMousePosition(const Game& game, const GraphicsHandler& graphicsHandler)
+    {
+        const sf::Vector2f position = game.pixelToGridCoordinates() / graphicsHandler.getCellWidth();
+        return { static_cast<size_t>(position.x), static_cast<size_t>(position.y) };
+    }
+}
+
+void InputHandler::onMouseMove(const sf::Event& event, Game& game, GraphicsHandler& graphicsHandler)
+{
+    if (isPanning)
+    {
+        graphicsHandler.handlePan({ previousMousePosition.x - currentMousePosition.x, previousMousePosition.y - currentMousePosition.y });
+    }
+
+    if (editMode != CellEditMode::NONE
+        && mouseButtonDown(sf::Mouse::Button::Left)
+        && mouseOverCell(game, graphicsHandler))
+    {
+        if (editMode != CellEditMode::NONE)
+        {
+            editCell(getCellAtMousePosition(game, graphicsHandler), editMode, game);
+        }
+    }
+}
+
+void InputHandler::onMousePress(const sf::Event& event, Game& game, const GraphicsHandler& graphicsHandler)
+{
+    currentMouseDown.push_back(event.mouseButton.button);
+    mouseJustPressed.push_back(event.mouseButton.button);
+
+    if (event.mouseButton.button == sf::Mouse::Middle)
+    {
+        setPanning(true);
+    }
+
+    if (event.mouseButton.button == sf::Mouse::Left)
+    {
+        const bool buttonClicked = checkButtons(event, game.getButtons());
+        if (!buttonClicked && mouseOverCell(game, graphicsHandler))
+        {
+            setEditMode(getCellAtMousePosition(game, graphicsHandler), editMode, game);
+            editCell(getCellAtMousePosition(game, graphicsHandler), editMode, game);
+        }
+    }
+}
+
+void InputHandler::onMouseRelease(const sf::Event& event)
+{
+    std::remove(currentMouseDown.begin(), currentMouseDown.end(), event.mouseButton.button);
+    mouseJustReleased.push_back(event.mouseButton.button);
+
+    if (event.mouseButton.button == sf::Mouse::Middle)
+    {
+        setPanning(false);
+    }
+    if (event.mouseButton.button == sf::Mouse::Left)
+    {
+        editMode = CellEditMode::NONE;
     }
 }

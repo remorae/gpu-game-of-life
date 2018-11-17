@@ -13,17 +13,10 @@ void DrawUtils::drawLine(sf::RenderWindow& window, const sf::Vector2f& start, co
     window.draw(line, 2, sf::Lines);
 }
 
-GraphicsHandler::GraphicsHandler(GraphicsConfig options) :
+GraphicsHandler::GraphicsHandler(GraphicsConfig options, size_t gridWidth, size_t gridHeight) :
     options(std::move(options))
 {
-}
-
-void GraphicsHandler::init(const Game& game)
-{
-    const float width = game.getWidth() * options.gridElementWidth;
-    const float height = game.getHeight() * options.gridElementWidth;
-    gridView.setSize(width, height);
-    gridView.setCenter(width / 2, height / 2);
+    resetCamera(gridWidth, gridHeight);
     gridView.setViewport(sf::FloatRect{ 0.0f, 0.0f, 1.0f, options.gridViewportHeight });
 }
 
@@ -41,6 +34,7 @@ void GraphicsHandler::drawGrid(sf::RenderWindow& window, const Game& game) const
     sf::View view{ gridView };
     view.zoom(zoomLevel);
     window.setView(view);
+    window.clear(options.backgroundColor);
         
     if (options.drawLines)
     {
@@ -60,17 +54,15 @@ void GraphicsHandler::drawGrid(sf::RenderWindow& window, const Game& game) const
     }
 
     // Cells
+    sf::RectangleShape cell{ sf::Vector2f{ options.gridElementWidth, options.gridElementWidth } };
     for (int row = 0; row < height; ++row)
     {
         for (int col = 0; col < width; ++col)
         {
-            if (game.getCell(col, row))
-            {
-                sf::RectangleShape cell{ sf::Vector2f{ options.gridElementWidth, options.gridElementWidth } };
-                cell.setPosition(sf::Vector2f{ col * (options.gridElementWidth + lineWidth), row * (options.gridElementWidth + lineWidth) });
+            cell.setFillColor((game.getCell(col, row)) ? options.aliveCellColor : options.deadCellColor);
+            cell.setPosition(sf::Vector2f{ col * (options.gridElementWidth + lineWidth), row * (options.gridElementWidth + lineWidth) });
 
-                window.draw(cell);
-            }
+            window.draw(cell);
         }
     }
 }
@@ -101,4 +93,21 @@ void GraphicsHandler::handleZoom(const float delta)
 void GraphicsHandler::handlePan(const sf::Vector2f& delta)
 {
     gridView.move(delta.x, delta.y);
+}
+
+void GraphicsHandler::resetCamera(size_t gridWidth, size_t gridHeight)
+{
+    const float width = gridWidth * options.gridElementWidth;
+    const float height = gridHeight * options.gridElementWidth;
+    gridView.setSize(width, height);
+    gridView.setCenter(width / 2, height / 2);
+    zoomLevel = 1.0f;
+}
+
+sf::Vector2f GraphicsHandler::pixelToGridCoordinates(const sf::RenderWindow& window) const
+{
+    const sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+    sf::View view{ gridView };
+    view.zoom(zoomLevel);
+    return window.mapPixelToCoords(pixelPos, view);
 }
