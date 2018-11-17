@@ -15,3 +15,7 @@ A graphical depiction of Conway’s Game of Life written in C++.
 
 ## Implementation Details
 All update operations will occur on the GPU. This will allow for huge grid sizes to be updated quickly. Ideally, along with tile-based kernel configuration, we will divide the grid into “chunks” and only update portions that have any alive cells for maximum performance.
+
+## Demonstration
+
+![Demonstration](https://cloud.alexplagman.com/index.php/s/SGQkPGqy943neQp/download)
