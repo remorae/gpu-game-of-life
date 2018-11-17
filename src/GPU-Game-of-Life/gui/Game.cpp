@@ -11,7 +11,8 @@ Game::Game(GameConfig gameOptions, GraphicsConfig graphicsOptions) :
     window{ sf::VideoMode{ gameOptions.screenWidth, gameOptions.screenHeight }, gameOptions.title },
     options{ std::move(gameOptions) },
     updateThreshold{ sf::seconds(1.0f / gameOptions.targetUPS) },
-    graphicsHandler{ std::move(graphicsOptions) }
+    graphicsHandler{ std::move(graphicsOptions), getWidth(), getHeight() },
+    inputHandler{ InputConfig{} }
 {
 }
 
@@ -53,16 +54,25 @@ namespace
     }
 }
 
+sf::Vector2f Game::pixelToGridCoordinates() const
+{
+    return graphicsHandler.pixelToGridCoordinates(window);
+}
+
 void Game::initGUI()
 {
     sf::RectangleShape btnRect{ sf::Vector2f{ 95.0f, 30.0f } };
     btnRect.setFillColor(sf::Color::Blue);
     Button randomBtn{ btnRect, [this]() { randomizeGrid(grid, options.gridWidth, options.gridHeight); } };
 
-    btnRect.setSize({ 70.0f, 30.0f });
+    btnRect.setSize({ 65.0f, 30.0f });
     Button clearBtn{ btnRect, [this]() { clearGrid(grid); } };
 
+    btnRect.setSize({ 70.0f, 30.0f });
     Button pauseBtn{ btnRect, [this]() { paused = !paused; } };
+
+    btnRect.setSize({ 160.0f, 30.0f });
+    Button resetBtn{ btnRect, [this]() { graphicsHandler.resetCamera(getWidth(), getHeight()); } };
     
     sf::Font font;
     if (font.loadFromFile("resources/fonts/FreeSans.ttf"))
@@ -82,14 +92,18 @@ void Game::initGUI()
 
         text.setString("Pause");
         pauseBtn.setText(text, font);
-        pauseBtn.setPosition(175.0f, 570.0f);
+        pauseBtn.setPosition(170.0f, 570.0f);
         buttons.emplace_back(std::move(pauseBtn));
+
+        text.setString("Reset Camera");
+        resetBtn.setText(text, font);
+        resetBtn.setPosition(245.0f, 570.0f);
+        buttons.emplace_back(std::move(resetBtn));
     }
 }
 
 void Game::run()
 {
-    graphicsHandler.init(*this);
     randomizeGrid(grid, options.gridWidth, options.gridHeight);
     initGUI();
 

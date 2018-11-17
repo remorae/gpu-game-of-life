@@ -5,7 +5,7 @@
 class Game;
 class GraphicsHandler;
 
-enum class ToggleMode
+enum class CellEditMode
 {
     OFF,
     ON,
@@ -14,7 +14,7 @@ enum class ToggleMode
 
 struct InputConfig
 {
-    bool outputMousePosition = false;
+    bool outputMousePosition{ false };
 };
 
 class InputHandler
@@ -24,9 +24,10 @@ private:
     bool isPanning = false;
     sf::Vector2f previousMousePosition;
     sf::Vector2f currentMousePosition;
-    ToggleMode toggleMode = ToggleMode::NONE;
-    std::vector<sf::Mouse::Button> previousMouseDown;
+    CellEditMode editMode = CellEditMode::NONE;
+    std::vector<sf::Mouse::Button> mouseJustPressed;
     std::vector<sf::Mouse::Button> currentMouseDown;
+    std::vector<sf::Mouse::Button> mouseJustReleased;
 
 public:
     InputHandler(InputConfig options);
@@ -35,4 +36,11 @@ public:
 
 private:
     void setPanning(bool value) { isPanning = value; }
+    void onMouseMove(const sf::Event& event, Game& game, GraphicsHandler& graphicsHandler);
+    void onMousePress(const sf::Event& event, Game& game, const GraphicsHandler& graphicsHandler);
+    void onMouseRelease(const sf::Event& event);
+
+    bool mouseButtonDown(const sf::Mouse::Button& button) const;
+    bool mouseButtonPressed(const sf::Mouse::Button& button) const;
+    bool mouseButtonReleased(const sf::Mouse::Button& button) const;
 };
