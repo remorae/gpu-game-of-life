@@ -1,5 +1,7 @@
 #include "GraphicsHandler.h"
 
+#include <iostream>
+
 #include "Button.h"
 #include "Game.h"
 
@@ -13,23 +15,70 @@ void DrawUtils::drawLine(sf::RenderWindow& window, const sf::Vector2f& start, co
     window.draw(line, 2, sf::Lines);
 }
 
-GraphicsHandler::GraphicsHandler(GraphicsConfig options, size_t gridWidth, size_t gridHeight) :
+GraphicsHandler::GraphicsHandler(GraphicsConfig options, const sf::Vector2<size_t>& gridSize) :
     options(std::move(options))
 {
-    resetCamera(gridWidth, gridHeight);
+    resetCamera(gridSize);
     gridView.setViewport(sf::FloatRect{ 0.0f, 0.0f, 1.0f, options.gridViewportHeight });
+}
+
+namespace
+{
+    void drawGridLines(sf::RenderWindow& window, const sf::Vector2<size_t>& gridSize,
+                       const sf::Vector2f& viewSize, const GraphicsConfig& options)
+    {
+        // Horizontal
+        for (unsigned int y = 0; y <= gridSize.y; ++y)
+        {
+            const float startY = y * (options.cellWidth + options.lineWidth);
+            DrawUtils::drawLine(window, { 0.0f, startY }, { viewSize.x, startY });
+        }
+
+        // Vertical
+        for (unsigned int x = 0; x <= gridSize.x; ++x)
+        {
+            const float startX = x * (options.cellWidth + options.lineWidth);
+            DrawUtils::drawLine(window, { startX, 0.0f }, { startX, viewSize.y });
+        }
+    }
+
+    void drawOverlay(sf::RenderWindow& window, const Game& game, const GraphicsConfig& options)
+    {
+        if (const auto overlayPosition = game.getOverlayCoordinates())
+        {
+            sf::RectangleShape cell{ sf::Vector2f{ options.cellWidth, options.cellWidth } };
+            cell.setFillColor(options.cellOverlayColor);
+            const sf::Vector2f position{ overlayPosition->x * options.cellWidth, overlayPosition->y * options.cellWidth };
+            cell.setPosition(position);
+
+            window.draw(cell);
+        }
+    }
+
+    void drawCells(sf::RenderWindow& window, const Game& game, const sf::Vector2<size_t>& gridSize, const GraphicsConfig& options)
+    {
+        sf::RectangleShape cell{ sf::Vector2f{ options.cellWidth, options.cellWidth } };
+        for (size_t y = 0; y < gridSize.y; ++y)
+        {
+            for (size_t x = 0; x < gridSize.x; ++x)
+            {
+                cell.setFillColor((game.getCell({ x, y })) ? options.aliveCellColor : options.deadCellColor);
+                cell.setPosition({ x * (options.cellWidth + options.lineWidth), y * (options.cellWidth + options.lineWidth) });
+
+                window.draw(cell);
+            }
+        }
+
+        drawOverlay(window, game, options);
+    }
 }
 
 void GraphicsHandler::drawGrid(sf::RenderWindow& window, const Game& game) const
 {
-    const size_t width = game.getWidth();
-    const size_t height = game.getHeight();
+    const sf::Vector2<size_t> gridSize = game.gridDimensions();
         
-    const float lineWidth = 0.0f;
-    const float totalLineWidth = (width + 1) * lineWidth;
-    const float totalLineHeight = (height + 1) * lineWidth;
-    const float totalWidth = totalLineWidth + options.gridElementWidth * width;
-    const float totalHeight = totalLineHeight + options.gridElementWidth * height;
+    const float totalWidth = ((gridSize.x + 1) * options.lineWidth) + (options.cellWidth * gridSize.x);
+    const float totalHeight = ((gridSize.y + 1) * options.lineWidth) + (options.cellWidth * gridSize.y);
 
     sf::View view{ gridView };
     view.zoom(zoomLevel);
@@ -38,33 +87,10 @@ void GraphicsHandler::drawGrid(sf::RenderWindow& window, const Game& game) const
         
     if (options.drawLines)
     {
-        // Horizontal lines
-        for (int row = 0; row <= height; ++row)
-        {
-            const float startY = row * (options.gridElementWidth + lineWidth);
-            DrawUtils::drawLine(window, sf::Vector2{ 0.0f, startY }, sf::Vector2{ totalWidth, startY });
-        }
-
-        // Vertical lines
-        for (int col = 0; col <= width; ++col)
-        {
-            const float startX = col * (options.gridElementWidth + lineWidth);
-            DrawUtils::drawLine(window, sf::Vector2{ startX, 0.0f }, sf::Vector2{ startX, totalHeight });
-        }
+        drawGridLines(window, gridSize, { totalWidth, totalHeight }, options);
     }
 
-    // Cells
-    sf::RectangleShape cell{ sf::Vector2f{ options.gridElementWidth, options.gridElementWidth } };
-    for (int row = 0; row < height; ++row)
-    {
-        for (int col = 0; col < width; ++col)
-        {
-            cell.setFillColor((game.getCell(col, row)) ? options.aliveCellColor : options.deadCellColor);
-            cell.setPosition(sf::Vector2f{ col * (options.gridElementWidth + lineWidth), row * (options.gridElementWidth + lineWidth) });
-
-            window.draw(cell);
-        }
-    }
+    drawCells(window, game, gridSize, options);
 }
 
 void GraphicsHandler::drawUI(sf::RenderWindow& window, const Game& game) const
@@ -95,19 +121,17 @@ void GraphicsHandler::handlePan(const sf::Vector2f& delta)
     gridView.move(delta.x, delta.y);
 }
 
-void GraphicsHandler::resetCamera(size_t gridWidth, size_t gridHeight)
+void GraphicsHandler::resetCamera(const sf::Vector2<size_t>& gridSize)
 {
-    const float width = gridWidth * options.gridElementWidth;
-    const float height = gridHeight * options.gridElementWidth;
-    gridView.setSize(width, height);
-    gridView.setCenter(width / 2, height / 2);
+    const sf::Vector2f viewSize{ gridSize.x * options.cellWidth, gridSize.y * options.cellWidth };
+    gridView.setSize(viewSize);
+    gridView.setCenter(viewSize.x / 2, viewSize.y / 2);
     zoomLevel = 1.0f;
 }
 
-sf::Vector2f GraphicsHandler::pixelToGridCoordinates(const sf::RenderWindow& window) const
+sf::Vector2f GraphicsHandler::pixelToGridCoordinates(const sf::RenderWindow & window, const sf::Vector2i& pixel) const
 {
-    const sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
     sf::View view{ gridView };
     view.zoom(zoomLevel);
-    return window.mapPixelToCoords(pixelPos, view);
+    return window.mapPixelToCoords(pixel, view);
 }
