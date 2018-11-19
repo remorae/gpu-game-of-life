@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <string>
 
 #include <SFML/Graphics.hpp>
@@ -28,15 +29,16 @@ private:
 
     const sf::Time updateThreshold;
 
-    static constexpr size_t kDeltas = 100;
+    static constexpr size_t kDeltas{ 100 };
     std::array<float, kDeltas> frameDeltas;
     std::array<float, kDeltas> updateDeltas;
 
-    GraphicsHandler graphicsHandler;
-    InputHandler inputHandler;
+    GraphicsHandler graphics;
+    InputHandler input;
     std::vector<Button> buttons;
 
     std::vector<unsigned char> grid;
+    CellEditMode editMode;
 
     bool paused = false;
 
@@ -45,16 +47,24 @@ public:
 
     void run();
 
-    unsigned char getCell(size_t column, size_t row) const;
-    void setCell(size_t column, size_t row, unsigned char value);
-    size_t getWidth() const { return options.gridWidth; }
-    size_t getHeight() const { return options.gridHeight; }
+    unsigned char getCell(const sf::Vector2<size_t>& location) const;
+    void editCell(const sf::Vector2<size_t>& location);
+    void setEditModeFromLocation(const sf::Vector2<size_t>& location);
+    std::unique_ptr<sf::Vector2<size_t>> getOverlayCoordinates() const;
+
+    sf::Vector2<size_t> gridDimensions() const { return { options.gridWidth, options.gridHeight }; }
+
     const std::vector<Button>& getButtons() const { return buttons; }
 
-    sf::Vector2f pixelToGridCoordinates() const;
+    void handleMouseMove(bool panning, const sf::Vector2f& distance);
+    void handlePrimaryClick(const sf::Event& event);
 
 private:
     void initGUI();
     void update(const sf::Time& elapsed);
     void draw();
+
+    sf::Vector2f getMousePositionOnGrid() const;
+    std::unique_ptr<sf::Vector2<size_t>> cellCoordinatesFromPosition(const sf::Vector2f& position) const;
+    bool isPositionWithinGrid(const sf::Vector2<size_t>& position) const;
 };
