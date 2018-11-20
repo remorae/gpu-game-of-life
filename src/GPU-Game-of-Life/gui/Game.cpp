@@ -192,9 +192,18 @@ namespace
     }
 }
 
+extern void updateGridOnGPU(unsigned char* grid, size_t gridWidth, size_t gridHeight, size_t blockWidth, size_t blockHeight);
+
 void Game::update(const sf::Time& elapsed)
 {
-    updateGridOnCPU(grid, options.gridWidth, options.gridHeight);
+    if (options.runOnCPU)
+    {
+        updateGridOnCPU(grid, options.gridWidth, options.gridHeight);
+    }
+    else
+    {
+        updateGridOnGPU(&grid.front(), options.gridWidth, options.gridHeight, options.blockWidth, options.blockHeight);
+    }
 }
 
 void Game::draw()

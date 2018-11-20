@@ -17,6 +17,9 @@ struct GameConfig
     size_t targetUPS{ 8 };
     size_t gridWidth{ 100 };
     size_t gridHeight{ 100 };
+    bool runOnCPU{ false };
+    size_t blockWidth{ 32 };
+    size_t blockHeight{ 32 };
 };
 
 class Game

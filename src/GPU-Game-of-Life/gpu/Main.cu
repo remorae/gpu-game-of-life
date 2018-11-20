@@ -6,7 +6,7 @@
 // includes, project
 #include <helper_cuda.h>
 #include <helper_timer.h>
-#include "GameOfLife.h"
+#include "Kernel.h"
 #include "Methods.h"
 
 void usage(){
@@ -119,7 +119,7 @@ int main (int argc, const char * argv[]) {
 	// Pause (1) or play (1)
 	bool pause = 0; 
 	// Initialize the grid
-	initializeArrays(gameGridIn, gameGridWidth, gameGridHeight);
+	initializeArray(gameGridIn, gameGridWidth, gameGridHeight);
 	
 	size_t pitch;
 
