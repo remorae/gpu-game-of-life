@@ -42,14 +42,14 @@ void GraphicsHandler::drawGrid(sf::RenderWindow& window, const Game& game) const
         for (int row = 0; row <= height; ++row)
         {
             const float startY = row * (options.gridElementWidth + lineWidth);
-            DrawUtils::drawLine(window, sf::Vector2{ 0.0f, startY }, sf::Vector2{ totalWidth, startY });
+            DrawUtils::drawLine(window, sf::Vector2f{ 0.0f, startY }, sf::Vector2f{ totalWidth, startY });
         }
 
         // Vertical lines
         for (int col = 0; col <= width; ++col)
         {
             const float startX = col * (options.gridElementWidth + lineWidth);
-            DrawUtils::drawLine(window, sf::Vector2{ startX, 0.0f }, sf::Vector2{ startX, totalHeight });
+            DrawUtils::drawLine(window, sf::Vector2f{ startX, 0.0f }, sf::Vector2f{ startX, totalHeight });
         }
     }
 

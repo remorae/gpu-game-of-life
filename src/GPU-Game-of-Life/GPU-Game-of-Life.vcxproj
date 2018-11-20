@@ -77,7 +77,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\lib</AdditionalLibraryDirectories>
@@ -94,7 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\lib</AdditionalLibraryDirectories>
@@ -113,7 +113,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -134,7 +134,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Programming\Resources\SFML-2.5.1-vs-x64\include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -151,9 +151,11 @@
     <ClCompile Include="gui\Game.cpp" />
     <ClCompile Include="gui\GraphicsHandler.cpp" />
     <ClCompile Include="gui\InputHandler.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gpu\Kernel.h" />
+    <ClInclude Include="gpu\Methods.h" />
     <ClInclude Include="gui\Button.h" />
     <ClInclude Include="gui\Game.h" />
     <ClInclude Include="gui\GraphicsHandler.h" />
@@ -161,6 +163,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" />
+    <None Include="gpu\Kernel.cu" />
+    <None Include="gpu\main.cu" />
+    <None Include="gpu\Methods.cu" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\FreeSans.ttf">

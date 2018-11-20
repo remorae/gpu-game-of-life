@@ -19,7 +19,6 @@ BITS := $(if $(filter x86_64 x86_64-linux , $(HOSTTYPE)),64,32)
 # Fill in the name of the output binary here
 target    := life 
 
-
 #build cuda lib directory name
 ifeq ($(BITS),64)
         CUDALIB := lib64
@@ -27,36 +26,34 @@ else
         CUDALIB := lib
 endif
 
-
-
-
 # List of sources with .c, .cu, and .cc extensions
 # PLEASE INCLUDE the target source file (e.g. Server.cpp)
-sources   := \
-				main.cu\
-				GameOfLife.cu\
-				Methods.cu\
-
-
+sources := \
+		gpu/Kernel.cu \
+		gpu/Update.cu \
+		gui/Button.cpp \
+		gui/Game.cpp \
+		gui/GraphicsHandler.cpp \
+		gui/InputHandler.cpp \
+		Main.cpp
  
 # Other things that need to be built, e.g. .cubin files
 extradeps := 
 
 # Flags common to all compilers. You can set these on the comamnd line, e.g:
 # $ make opt="" dbg="-g" warn="-Wno-deptrcated-declarations -Wall -Werror"
-
-opt  ?= -m$(BITS)
-dbg  ?= -g -O0
+opt ?= -m$(BITS)
+dbg ?= -g -O0
 cuda_dbg ?= -G $(dbg)
 warn ?= -Wall -Werror 
 
 # This is where the cuda runtime libraries and includes can be found
-
 cudaroot  := /usr/local/cuda-8.0
 
 # Tony: location of NVIDIA SDK
 nv_sdk := $(cudaroot)
-
+# Alex: location of SFML
+SFML_root := SFML-2.5.1-linux-gcc-x64
 
 #----- C compilation options ------
 gcc        := /usr/bin/gcc
@@ -66,14 +63,12 @@ clib_paths :=
 cinc_paths := -I $(cudaroot)/samples/common/inc
 clibraries := 
 
-
 #----- C++ compilation options ------
 gpp         := /usr/bin/g++ 
 ccflags     += $(opt) $(dbg) $(warn)
-cclib_paths := 
-ccinc_paths := -I$(cudaroot)/samples/common/inc -I$(nv_sdk)/samples/common/inc 
-cclibraries :=  
-
+cclib_paths :=  -L$(SFML_root)/lib
+ccinc_paths := -I$(cudaroot)/samples/common/inc -I$(nv_sdk)/samples/common/inc -I$(SFML_root)/include
+cclibraries :=  -lsfml-graphics -lsfml-window -lsfml-system
 
 #----- CUDA compilation options -----
 nvcc        := $(cudaroot)/bin/nvcc
@@ -82,42 +77,28 @@ culib_paths := -L$(cudaroot)/$(CUDALIB) -L$(nv_sdk)/C/lib -L$(nv_sdk)/samples/co
 cuinc_paths := -I$(cudaroot)/include -I$(nv_sdk)/samples/common/inc 
 culibraries := -lcuda -lcudart 
 
-
 lib_paths   := $(culib_paths) $(cclib_paths) $(clib_paths)
 libraries   := $(culibraries) $(cclibraries) $(clibraries)
 
-
 #----- Generate source file and object file lists
-# This code separates the source files by filename extension into C, C++,
-# and Cuda files.
-
+# This code separates the source files by filename extension into C, C++, and Cuda files.
 csources  := $(filter %.c ,$(sources))
 ccsources := $(filter %.cc,$(sources))
 cppsources := $(filter %.cpp,$(sources))
 cusources := $(filter %.cu,$(sources))
 
 # This code generates a list of object files by replacing filename extensions
-
 objects := $(patsubst %.c,%.o ,$(csources))  \
            $(patsubst %.cu,%.o,$(cusources)) \
            $(patsubst %.cc,%.o,$(ccsources)) \
            $(patsubst %.cpp,%.o,$(cppsources))
 
-
 #----- Build rules ------
-
-# foo:
-#	echo $(CUDALIB)
-
 all: $(target) 
-
-
 
 $(target): $(objects) 
 	$(gpp)  -o $@ $(objects) $(ccflags) $(lib_paths) $(libraries)
-
-
-
+	export LD_LIBRARY_PATH=$(SFML_root)/lib
 
 %.o: %.cu
 	$(nvcc) -arch=sm_30 -c $< $(cuflags) $(cuinc_paths) -o $@
@@ -137,77 +118,49 @@ $(target): $(objects)
 clean:
 	rm -f $(target) $(objects) *.mk  *.combine *.vcg *.sibling 
 
-
-
-
 #----- Dependency Generation -----
-#
 # If a particular set of sources is non-empty, then have rules for
 # generating the necessary dep files.
-#
-
 ccdep := ccdep.mk
 cdep  := cdep.mk
 cudep := cudep.mk
 cppdep := cppdep.mk
 
 depfiles =
-
 ifneq ($(ccsources),)
-
-depfiles += $(ccdep)
-$(ccdep): $(ccsources)
+ depfiles += $(ccdep)
+ $(ccdep): $(ccsources)
 	$(gpp) -MM $(ccsources) > $(ccdep)
-
 else
-
-$(ccdep):
-
+ $(ccdep):
 endif
 
 ifneq ($(cusources),)
-
-depfiles += $(cudep)
-$(cudep):
+ depfiles += $(cudep)
+ $(cudep):
 	$(gpp) -MM -x c++ $(cuinc_paths) $(ccinc_paths) $(cusources) > $(cudep)
-
 else
-
-$(cudep):
-
+ $(cudep):
 endif
 
 ifneq ($(csources),)
-
-depfiles += $(cdep)
-$(cdep): $(csources)
+ depfiles += $(cdep)
+ $(cdep): $(csources)
 	$(gcc) -MM -x c $(csources) > $(cdep)
-
 else
-
-$(cdep):
-
+ $(cdep):
 endif
-
 
 ifneq ($(cppsources),)
-
-depfiles += $(cppdep)
-$(cppdep): $(cppsources)
+ depfiles += $(cppdep)
+ $(cppdep): $(cppsources)
 	$(gpp) -MM -x c++ $(ccinc_paths) $(cppsources)  > $(cppdep)
-
 else
-
-$(cppdep):
-
+ $(cppdep):
 endif
-
-
-
 
 .PHONY: dep
 dep: $(depfiles)
-
 
 ifneq ($(MAKECMDGOALS),dep)
  ifneq ($(MAKECMDGOALS),clean)
