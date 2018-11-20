@@ -8,31 +8,12 @@
 #include "Game.h"
 #include "GraphicsHandler.h"
 
-namespace
-{
-    bool checkButtons(const sf::Event event, const std::vector<Button>& buttons)
-    {
-        bool anyClicked = false;
-        for (const Button& btn : buttons)
-        {
-            const sf::FloatRect& bounds = btn.getGlobalBounds();
-            if (event.mouseButton.x >= bounds.left && event.mouseButton.x < bounds.left + bounds.width
-                && event.mouseButton.y >= bounds.top && event.mouseButton.y < bounds.top + bounds.height)
-            {
-                anyClicked = true;
-                btn.clicked();
-            }
-        }
-        return anyClicked;
-    }
-}
-
 InputHandler::InputHandler(InputConfig options) :
     options(std::move(options))
 {
 }
 
-void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHandler& graphicsHandler)
+void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHandler& graphics)
 {
     previousMousePosition = currentMousePosition;
     mouseJustPressed.clear();
@@ -56,11 +37,11 @@ void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHa
                 break;
 
             case sf::Event::MouseWheelScrolled:
-                graphicsHandler.handleZoom(event.mouseWheelScroll.delta);
+                graphics.handleZoom(event.mouseWheelScroll.delta);
                 break;
 
             case sf::Event::MouseButtonPressed:
-                onMousePress(event, game, graphicsHandler);
+                onMousePress(event, game);
                 break;
 
             case sf::Event::MouseButtonReleased:
@@ -82,7 +63,8 @@ void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHa
 
     if (mouseMoved)
     {
-        onMouseMove(event, game, graphicsHandler);
+        const sf::Vector2f distance{ previousMousePosition.x - currentMousePosition.x, previousMousePosition.y - currentMousePosition.y };
+        game.handleMouseMove(isPanning, distance);
     }
 }
 
@@ -101,53 +83,12 @@ bool InputHandler::mouseButtonReleased(const sf::Mouse::Button& button) const
     return std::find(mouseJustReleased.begin(), mouseJustReleased.end(), button) == mouseJustReleased.end();
 }
 
-namespace
+sf::Vector2i InputHandler::getWindowMousePosition(const sf::RenderWindow& window) const
 {
-    void setEditMode(const sf::Vector2<size_t>& position, CellEditMode& mode, const Game& game)
-    {
-        mode = (game.getCell(position.x, position.x) == 1) ? CellEditMode::OFF : CellEditMode::ON;
-    }
-
-    void editCell(const sf::Vector2<size_t>& position, const CellEditMode& mode, Game& game)
-    {
-        game.setCell(position.x, position.y, (mode == CellEditMode::ON) ? 1 : 0);
-    }
-
-    bool mouseOverCell(const Game& game, const GraphicsHandler& graphicsHandler)
-    {
-        const sf::Vector2f position = game.pixelToGridCoordinates() / graphicsHandler.getCellWidth();
-        return position.x >= 0
-            && position.y >= 0
-            && position.x < game.getWidth()
-            && position.y < game.getHeight();
-    }
-
-    sf::Vector2<size_t> getCellAtMousePosition(const Game& game, const GraphicsHandler& graphicsHandler)
-    {
-        const sf::Vector2f position = game.pixelToGridCoordinates() / graphicsHandler.getCellWidth();
-        return { static_cast<size_t>(position.x), static_cast<size_t>(position.y) };
-    }
+    return sf::Mouse::getPosition(window);
 }
 
-void InputHandler::onMouseMove(const sf::Event& event, Game& game, GraphicsHandler& graphicsHandler)
-{
-    if (isPanning)
-    {
-        graphicsHandler.handlePan({ previousMousePosition.x - currentMousePosition.x, previousMousePosition.y - currentMousePosition.y });
-    }
-
-    if (editMode != CellEditMode::NONE
-        && mouseButtonDown(sf::Mouse::Button::Left)
-        && mouseOverCell(game, graphicsHandler))
-    {
-        if (editMode != CellEditMode::NONE)
-        {
-            editCell(getCellAtMousePosition(game, graphicsHandler), editMode, game);
-        }
-    }
-}
-
-void InputHandler::onMousePress(const sf::Event& event, Game& game, const GraphicsHandler& graphicsHandler)
+void InputHandler::onMousePress(const sf::Event& event, Game& game)
 {
     currentMouseDown.push_back(event.mouseButton.button);
     mouseJustPressed.push_back(event.mouseButton.button);
@@ -159,18 +100,13 @@ void InputHandler::onMousePress(const sf::Event& event, Game& game, const Graphi
 
     if (event.mouseButton.button == sf::Mouse::Left)
     {
-        const bool buttonClicked = checkButtons(event, game.getButtons());
-        if (!buttonClicked && mouseOverCell(game, graphicsHandler))
-        {
-            setEditMode(getCellAtMousePosition(game, graphicsHandler), editMode, game);
-            editCell(getCellAtMousePosition(game, graphicsHandler), editMode, game);
-        }
+        game.handlePrimaryClick(event);
     }
 }
 
 void InputHandler::onMouseRelease(const sf::Event& event)
 {
-    std::remove(currentMouseDown.begin(), currentMouseDown.end(), event.mouseButton.button);
+    currentMouseDown.erase(std::remove(currentMouseDown.begin(), currentMouseDown.end(), event.mouseButton.button));
     mouseJustReleased.push_back(event.mouseButton.button);
 
     if (event.mouseButton.button == sf::Mouse::Middle)

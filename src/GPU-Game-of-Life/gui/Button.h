@@ -10,8 +10,8 @@ class Button
 {
 private:
     sf::RectangleShape rectangle;
-    std::unique_ptr<sf::Font> font = nullptr;
-    std::unique_ptr<sf::Text> text = nullptr;
+    std::unique_ptr<sf::Font> font;
+    std::unique_ptr<sf::Text> text;
     std::function<void()> onClick;
 
 public:

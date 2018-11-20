@@ -11,8 +11,8 @@ Game::Game(GameConfig gameOptions, GraphicsConfig graphicsOptions) :
     window{ sf::VideoMode{ gameOptions.screenWidth, gameOptions.screenHeight }, gameOptions.title },
     options{ std::move(gameOptions) },
     updateThreshold{ sf::seconds(1.0f / gameOptions.targetUPS) },
-    graphicsHandler{ std::move(graphicsOptions), getWidth(), getHeight() },
-    inputHandler{ InputConfig{} }
+    graphics{ std::move(graphicsOptions), gridDimensions() },
+    input{ InputConfig{} }
 {
 }
 
@@ -54,9 +54,77 @@ namespace
     }
 }
 
-sf::Vector2f Game::pixelToGridCoordinates() const
+std::unique_ptr<sf::Vector2<size_t>> Game::cellCoordinatesFromPosition(const sf::Vector2f& position) const
 {
-    return graphicsHandler.pixelToGridCoordinates(window);
+    const sf::Vector2f cellPosition = position / graphics.getCellWidth();
+    auto result = std::make_unique<sf::Vector2<size_t>>(static_cast<size_t>(cellPosition.x), static_cast<size_t>(cellPosition.y));
+    if (isPositionWithinGrid(*result))
+    {
+        return result;
+    }
+
+    return nullptr;
+}
+
+bool Game::isPositionWithinGrid(const sf::Vector2<size_t>& position) const
+{
+    const auto gridSize = gridDimensions();
+    return position.x >= 0 && position.x < gridSize.x
+        && position.y >= 0 && position.y < gridSize.y;
+}
+
+sf::Vector2f Game::getMousePositionOnGrid() const
+{
+    const sf::Vector2i windowCoordinates = input.getWindowMousePosition(window);
+    return graphics.pixelToGridCoordinates(window, windowCoordinates);
+}
+
+void Game::handleMouseMove(bool panning, const sf::Vector2f& distance)
+{
+    if (panning)
+    {
+        graphics.handlePan(distance);
+    }
+
+    if (const auto cellAtMouse = cellCoordinatesFromPosition(getMousePositionOnGrid()))
+    {
+        if (editMode != CellEditMode::NONE && input.mouseButtonDown(sf::Mouse::Button::Left))
+        {
+            editCell(*cellAtMouse);
+        }
+    }
+}
+
+namespace
+{
+    bool checkButtons(const sf::Event event, const std::vector<Button>& buttons)
+    {
+        bool anyClicked = false;
+        for (const Button& btn : buttons)
+        {
+            const sf::FloatRect& bounds = btn.getGlobalBounds();
+            if (event.mouseButton.x >= bounds.left && event.mouseButton.x < bounds.left + bounds.width
+                && event.mouseButton.y >= bounds.top && event.mouseButton.y < bounds.top + bounds.height)
+            {
+                anyClicked = true;
+                btn.clicked();
+            }
+        }
+        return anyClicked;
+    }
+}
+
+void Game::handlePrimaryClick(const sf::Event& event)
+{
+    const bool buttonClicked = checkButtons(event, buttons);
+    if (!buttonClicked)
+    {
+        if (const auto cellClicked = cellCoordinatesFromPosition(getMousePositionOnGrid()))
+        {
+            setEditModeFromLocation(*cellClicked);
+            editCell(*cellClicked);
+        }
+    }
 }
 
 void Game::initGUI()
@@ -72,7 +140,7 @@ void Game::initGUI()
     Button pauseBtn{ btnRect, [this]() { paused = !paused; } };
 
     btnRect.setSize({ 160.0f, 30.0f });
-    Button resetBtn{ btnRect, [this]() { graphicsHandler.resetCamera(getWidth(), getHeight()); } };
+    Button resetBtn{ btnRect, [this]() { graphics.resetCamera(gridDimensions()); } };
     
     sf::Font font;
     if (font.loadFromFile("resources/fonts/FreeSans.ttf"))
@@ -138,7 +206,7 @@ void Game::run()
         }
 
         draw();
-        inputHandler.handleEvents(window, *this, graphicsHandler);
+        input.handleEvents(window, *this, graphics);
     }
 }
 
@@ -209,30 +277,40 @@ void Game::update(const sf::Time& elapsed)
 void Game::draw()
 {
     window.clear();
-    graphicsHandler.draw(window, *this);
+    graphics.draw(window, *this);
     window.display();
 }
 
-unsigned char Game::getCell(size_t column, size_t row) const
+unsigned char Game::getCell(const sf::Vector2<size_t>& location) const
 {
-    if (row >= options.gridHeight || column >= options.gridWidth)
+    if (location.y >= options.gridHeight || location.x >= options.gridWidth)
         throw std::invalid_argument{ "Invalid element coordinates." };
 
-    const size_t index = row * options.gridWidth + column;
+    const size_t index = location.y * options.gridWidth + location.x;
     if (grid.size() < index)
         throw std::logic_error{ "Bad grid state; too small for current grid dimensions." };
 
     return grid[index];
 }
 
-void Game::setCell(size_t column, size_t row, unsigned char value)
+void Game::editCell(const sf::Vector2<size_t>& location)
 {
-    if (row >= options.gridHeight || column >= options.gridWidth)
+    if (location.y >= options.gridHeight || location.x >= options.gridWidth)
         throw std::invalid_argument{ "Invalid element coordinates." };
 
-    const size_t index = row * options.gridWidth + column;
+    const size_t index = location.y * options.gridWidth + location.x;
     if (grid.size() < index)
         throw std::logic_error{ "Bad grid state; too small for current grid dimensions." };
 
-    grid[index] = value;
+    grid[index] = (editMode == CellEditMode::ON) ? 1 : 0;
+}
+
+void Game::setEditModeFromLocation(const sf::Vector2<size_t>& location)
+{
+    editMode = (getCell(location) == 1) ? CellEditMode::OFF : CellEditMode::ON;
+}
+
+std::unique_ptr<sf::Vector2<size_t>> Game::getOverlayCoordinates() const
+{
+    return cellCoordinatesFromPosition(getMousePositionOnGrid());
 }
