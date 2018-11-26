@@ -152,6 +152,8 @@
     <ClCompile Include="gui\GraphicsHandler.cpp" />
     <ClCompile Include="gui\InputHandler.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="NoGui.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gpu\Kernel.h" />
@@ -160,6 +162,8 @@
     <ClInclude Include="gui\Game.h" />
     <ClInclude Include="gui\GraphicsHandler.h" />
     <ClInclude Include="gui\InputHandler.h" />
+    <ClInclude Include="NoGui.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" />

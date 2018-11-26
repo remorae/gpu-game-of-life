@@ -9,10 +9,10 @@ void updateGridOnGPU(unsigned char* gameGrid,
                      size_t blockWidth, size_t blockHeight)
 {
     size_t pitch;
-	int* d_grid;
+	unsigned char* d_grid;
 	cudaMallocPitch(&d_grid, &pitch, gameGridWidth * sizeof(unsigned char), gameGridHeight);
 	
-	cudaMemcpy2D(d_grid, pitch, grid, gameGridWidth * sizeof(unsigned char), gameGridWidth * sizeof(unsigned char), gameGridHeight, cudaMemcpyHostToDevice);
+	cudaMemcpy2D(d_grid, pitch, gameGrid, gameGridWidth * sizeof(unsigned char), gameGridWidth * sizeof(unsigned char), gameGridHeight, cudaMemcpyHostToDevice);
 
 	const int gridWidth = (int)ceil((gameGridWidth) / (float)blockWidth);
 	const int gridHeight = (int)ceil((gameGridHeight) / (float)blockHeight);
@@ -22,7 +22,7 @@ void updateGridOnGPU(unsigned char* gameGrid,
    	const dim3 grid(gridWidth, gridHeight, 1);
    	const dim3 threads(blockWidth, blockHeight, 1);
 
-    gpuUpdate<<<grid, threads, shared_mem_size>>>(d_grid, pitch / sizeof(unsigned char), gameGridWidth, gameGridHeight);
+    updateGrid<<<grid, threads, sharedMemSize>>>(d_grid, pitch / sizeof(unsigned char), gameGridWidth, gameGridHeight);
 	
 	cudaMemcpy2D(gameGrid, gameGridWidth * sizeof(int), d_grid, pitch, gameGridWidth * sizeof(unsigned char), gameGridHeight, cudaMemcpyDeviceToHost);
 }
