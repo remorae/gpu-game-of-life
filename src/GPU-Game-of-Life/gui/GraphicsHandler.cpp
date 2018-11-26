@@ -1,7 +1,5 @@
 #include "GraphicsHandler.h"
 
-#include <iostream>
-
 #include "Button.h"
 #include "Game.h"
 

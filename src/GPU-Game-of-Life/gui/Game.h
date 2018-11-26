@@ -18,6 +18,14 @@ struct GameConfig
     size_t targetUPS{ 8 };
     size_t gridWidth{ 100 };
     size_t gridHeight{ 100 };
+    size_t blockWidth{ 32 };
+    size_t blockHeight{ 32 };
+    float buttonHeight{ 30.0f };
+    float buttonSpacing{ 5.0f };
+    sf::Color buttonTextColor{ sf::Color::White };
+    sf::Color buttonBackgroundColor{ sf::Color::Blue };
+    unsigned int buttonCharacterSize{ 24 };
+    bool runTest{ false };
 };
 
 class Game
@@ -25,13 +33,13 @@ class Game
 private:
     sf::RenderWindow window;
 
-    const GameConfig options;
+    GameConfig options;
 
     const sf::Time updateThreshold;
 
     static constexpr size_t kDeltas{ 100 };
     std::array<float, kDeltas> frameDeltas;
-    std::array<float, kDeltas> updateDeltas;
+    std::array<sf::Int32, kDeltas> updateDeltas;
 
     GraphicsHandler graphics;
     InputHandler input;
@@ -67,4 +75,5 @@ private:
     sf::Vector2f getMousePositionOnGrid() const;
     std::unique_ptr<sf::Vector2<size_t>> cellCoordinatesFromPosition(const sf::Vector2f& position) const;
     bool isPositionWithinGrid(const sf::Vector2<size_t>& position) const;
+    void togglePaused();
 };
