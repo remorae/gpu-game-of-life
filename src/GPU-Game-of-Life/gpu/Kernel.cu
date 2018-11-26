@@ -23,7 +23,7 @@ __global__ void updateGrid(unsigned char* grid, int intpitch, int width, int hei
 	{
 		// N
 		s_data[ty * sharedMemDim_x + tx + 1] = grid[((iy - 1 + height) % height) * intpitch + ix];
-		if (tx == 0
+		if (tx == 0)
 		{
 			// NW
 			s_data[ty * sharedMemDim_x + tx] = grid[((iy - 1 + height) % height) * intpitch + (ix - 1 + width) % width];
@@ -38,7 +38,7 @@ __global__ void updateGrid(unsigned char* grid, int intpitch, int width, int hei
 	{
 		// S
 		s_data[(ty + 2) * sharedMemDim_x + tx + 1] = grid[((iy + 1) % height) * intpitch + ix];
-		if (tx == 0
+		if (tx == 0)
 		{
 			// SW
 			s_data[(ty + 2) * sharedMemDim_x + tx] = grid[((iy + 1) % height) * intpitch + (ix - 1 + width) % width];
