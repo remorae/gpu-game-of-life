@@ -48,6 +48,13 @@ void printArray(int *arr, int rows, int cols, int shouldPrint){
    printf("\n");
 }
 
+void addShape(int *gameGrid, int *shape, int shapePosX, int shapePosY, int shapeWidth, int shapeHeight, int gameGridWidth){
+	for (int i = shapePosY; i < shapePosY + shapeHeight; i++){
+		for (int j = shapePosX; j < shapePosX + shapeWidth; j++)
+			gameGrid[i*gameGridWidth + j] = shape[i-shapePosY][j-shapePosX];
+	}
+}
+
 int strToInt(char * str){
 	int length = strlen(str);
 	int integer = 0;

@@ -30,3 +30,5 @@ ipch/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+
+SFML-2.5.1-linux-gcc-x64/

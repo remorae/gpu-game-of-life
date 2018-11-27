@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <string>
 
 #include <SFML/Graphics.hpp>
@@ -17,6 +18,14 @@ struct GameConfig
     size_t targetUPS{ 8 };
     size_t gridWidth{ 100 };
     size_t gridHeight{ 100 };
+    size_t blockWidth{ 32 };
+    size_t blockHeight{ 32 };
+    float buttonHeight{ 30.0f };
+    float buttonSpacing{ 5.0f };
+    sf::Color buttonTextColor{ sf::Color::White };
+    sf::Color buttonBackgroundColor{ sf::Color::Blue };
+    unsigned int buttonCharacterSize{ 24 };
+    bool runTest{ false };
 };
 
 class Game
@@ -24,19 +33,20 @@ class Game
 private:
     sf::RenderWindow window;
 
-    const GameConfig options;
+    GameConfig options;
 
     const sf::Time updateThreshold;
 
-    static constexpr size_t kDeltas = 100;
+    static constexpr size_t kDeltas{ 100 };
     std::array<float, kDeltas> frameDeltas;
-    std::array<float, kDeltas> updateDeltas;
+    std::array<sf::Int32, kDeltas> updateDeltas;
 
-    GraphicsHandler graphicsHandler;
-    InputHandler inputHandler;
+    GraphicsHandler graphics;
+    InputHandler input;
     std::vector<Button> buttons;
 
     std::vector<unsigned char> grid;
+    CellEditMode editMode;
 
     bool paused = false;
 
@@ -45,16 +55,25 @@ public:
 
     void run();
 
-    unsigned char getCell(size_t column, size_t row) const;
-    void setCell(size_t column, size_t row, unsigned char value);
-    size_t getWidth() const { return options.gridWidth; }
-    size_t getHeight() const { return options.gridHeight; }
+    unsigned char getCell(const sf::Vector2<size_t>& location) const;
+    void editCell(const sf::Vector2<size_t>& location);
+    void setEditModeFromLocation(const sf::Vector2<size_t>& location);
+    std::unique_ptr<sf::Vector2<size_t>> getOverlayCoordinates() const;
+
+    sf::Vector2<size_t> gridDimensions() const { return { options.gridWidth, options.gridHeight }; }
+
     const std::vector<Button>& getButtons() const { return buttons; }
 
-    sf::Vector2f pixelToGridCoordinates() const;
+    void handleMouseMove(bool panning, const sf::Vector2f& distance);
+    void handlePrimaryClick(const sf::Event& event);
 
 private:
     void initGUI();
     void update(const sf::Time& elapsed);
     void draw();
+
+    sf::Vector2f getMousePositionOnGrid() const;
+    std::unique_ptr<sf::Vector2<size_t>> cellCoordinatesFromPosition(const sf::Vector2f& position) const;
+    bool isPositionWithinGrid(const sf::Vector2<size_t>& position) const;
+    void togglePaused();
 };

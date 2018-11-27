@@ -2,109 +2,185 @@
 
 #include <iostream>
 #include <numeric>
-#include <random>
 
 #include "GraphicsHandler.h"
 #include "InputHandler.h"
+#include "../Utils.h"
 
 Game::Game(GameConfig gameOptions, GraphicsConfig graphicsOptions) :
     window{ sf::VideoMode{ gameOptions.screenWidth, gameOptions.screenHeight }, gameOptions.title },
     options{ std::move(gameOptions) },
     updateThreshold{ sf::seconds(1.0f / gameOptions.targetUPS) },
-    graphicsHandler{ std::move(graphicsOptions), getWidth(), getHeight() },
-    inputHandler{ InputConfig{} }
+    graphics{ std::move(graphicsOptions), gridDimensions() },
+    input{ InputConfig{} }
 {
+}
+
+std::unique_ptr<sf::Vector2<size_t>> Game::cellCoordinatesFromPosition(const sf::Vector2f& position) const
+{
+    const sf::Vector2f cellPosition = position / graphics.getCellWidth();
+    auto result = std::make_unique<sf::Vector2<size_t>>(static_cast<size_t>(cellPosition.x), static_cast<size_t>(cellPosition.y));
+    if (isPositionWithinGrid(*result))
+    {
+        return result;
+    }
+
+    return nullptr;
+}
+
+bool Game::isPositionWithinGrid(const sf::Vector2<size_t>& position) const
+{
+    const auto gridSize = gridDimensions();
+    return position.x >= 0 && position.x < gridSize.x
+        && position.y >= 0 && position.y < gridSize.y;
 }
 
 namespace
 {
-    void randomizeGrid(std::vector<unsigned char>& grid, size_t width, size_t height)
+    void repositionButtons(std::vector<Button>& buttons, const GameConfig& options)
     {
-        std::random_device rd;
-        std::mt19937 generator(rd());
-        static std::uniform_int_distribution<unsigned int> distribution{0, 1};
-
-        const bool resize = (grid.size() != width * height);
-        if (resize)
+        for (size_t i = 1; i < buttons.size(); ++i)
         {
-            grid.clear();
-            grid.reserve(width * height);
+            const sf::FloatRect& previousBounds = buttons[i - 1].getGlobalBounds();
+            buttons[i].setPosition(previousBounds.left + previousBounds.width + options.buttonSpacing, previousBounds.top);
         }
-        for (size_t row = 0; row < height; ++row)
-        {
-            for (size_t col = 0; col < width; ++col)
-            {
-                const auto value = static_cast<unsigned char>(distribution(generator));
-                if (resize)
-                {
-                    grid.push_back(value);
-                }
-                else
-                {
-                    grid[row * width + col] = value;
-                }
-            }
-        }
-    }
-
-    void clearGrid(std::vector<unsigned char>& grid)
-    {
-        for (int i = 0; i < grid.size(); ++i)
-            grid[i] = 0;
     }
 }
 
-sf::Vector2f Game::pixelToGridCoordinates() const
+void Game::togglePaused()
 {
-    return graphicsHandler.pixelToGridCoordinates(window);
+    paused = !paused;
+    Button& pauseBtn = buttons[2];
+    const sf::Text* pauseText = pauseBtn.getText();
+    const sf::Font* pauseFont = pauseBtn.getFont();
+    if (pauseText && pauseFont)
+    {
+        sf::Text newText{ (paused) ? "Unpause" : "Pause", *pauseFont, pauseText->getCharacterSize() };
+        pauseBtn.setText(newText, *pauseFont);
+        repositionButtons(buttons, options);
+    }
+}
+
+sf::Vector2f Game::getMousePositionOnGrid() const
+{
+    const sf::Vector2i windowCoordinates = input.getWindowMousePosition(window);
+    return graphics.pixelToGridCoordinates(window, windowCoordinates);
+}
+
+void Game::handleMouseMove(bool panning, const sf::Vector2f& distance)
+{
+    if (panning)
+    {
+        graphics.handlePan(distance);
+    }
+
+    if (const auto cellAtMouse = cellCoordinatesFromPosition(getMousePositionOnGrid()))
+    {
+        if (editMode != CellEditMode::NONE && input.mouseButtonDown(sf::Mouse::Button::Left))
+        {
+            editCell(*cellAtMouse);
+        }
+    }
+}
+
+namespace
+{
+    bool checkButtons(const sf::Event event, const std::vector<Button>& buttons)
+    {
+        bool anyClicked = false;
+        for (const Button& btn : buttons)
+        {
+            const sf::FloatRect& bounds = btn.getGlobalBounds();
+            if (event.mouseButton.x >= bounds.left && event.mouseButton.x < bounds.left + bounds.width
+                && event.mouseButton.y >= bounds.top && event.mouseButton.y < bounds.top + bounds.height)
+            {
+                anyClicked = true;
+                btn.clicked();
+            }
+        }
+        return anyClicked;
+    }
+}
+
+void Game::handlePrimaryClick(const sf::Event& event)
+{
+    const bool buttonClicked = checkButtons(event, buttons);
+    if (!buttonClicked)
+    {
+        if (const auto cellClicked = cellCoordinatesFromPosition(getMousePositionOnGrid()))
+        {
+            setEditModeFromLocation(*cellClicked);
+            editCell(*cellClicked);
+        }
+    }
 }
 
 void Game::initGUI()
 {
-    sf::RectangleShape btnRect{ sf::Vector2f{ 95.0f, 30.0f } };
-    btnRect.setFillColor(sf::Color::Blue);
+    sf::RectangleShape btnRect{ sf::Vector2f{ 0.0f, options.buttonHeight } }; // Width is determined by text
+    btnRect.setFillColor(options.buttonBackgroundColor);
+
     Button randomBtn{ btnRect, [this]() { randomizeGrid(grid, options.gridWidth, options.gridHeight); } };
-
-    btnRect.setSize({ 65.0f, 30.0f });
     Button clearBtn{ btnRect, [this]() { clearGrid(grid); } };
+    Button pauseBtn{ btnRect, [this]() { togglePaused(); } };
+    Button resetBtn{ btnRect, [this]() { graphics.resetCamera(gridDimensions()); } };
 
-    btnRect.setSize({ 70.0f, 30.0f });
-    Button pauseBtn{ btnRect, [this]() { paused = !paused; } };
-
-    btnRect.setSize({ 160.0f, 30.0f });
-    Button resetBtn{ btnRect, [this]() { graphicsHandler.resetCamera(getWidth(), getHeight()); } };
-    
     sf::Font font;
-    if (font.loadFromFile("resources/fonts/FreeSans.ttf"))
-    {
-        sf::Text text;
-        text.setString("Random");
-        text.setCharacterSize(24);
-        text.setFillColor(sf::Color::White);
-        randomBtn.setText(text, font);
-        randomBtn.setPosition(0.0f, 570.0f);
-        buttons.emplace_back(std::move(randomBtn));
+    if (!font.loadFromFile("resources/fonts/FreeSans.ttf"))
+        return;
 
-        text.setString("Clear");
-        clearBtn.setText(text, font);
-        clearBtn.setPosition(100.0f, 570.0f);
-        buttons.emplace_back(std::move(clearBtn));
+    sf::Text text;
+    text.setCharacterSize(options.buttonCharacterSize);
+    text.setFillColor(options.buttonTextColor);
 
-        text.setString("Pause");
-        pauseBtn.setText(text, font);
-        pauseBtn.setPosition(170.0f, 570.0f);
-        buttons.emplace_back(std::move(pauseBtn));
+    text.setString("Random");
+    randomBtn.setText(text, font);
+    const float yPosition = options.screenHeight - randomBtn.getGlobalBounds().height;
+    randomBtn.setPosition(0.0f, yPosition);
+    buttons.emplace_back(std::move(randomBtn));
 
-        text.setString("Reset Camera");
-        resetBtn.setText(text, font);
-        resetBtn.setPosition(245.0f, 570.0f);
-        buttons.emplace_back(std::move(resetBtn));
-    }
+    text.setString("Clear");
+    clearBtn.setText(text, font);
+    buttons.emplace_back(std::move(clearBtn));
+
+    text.setString("Pause");
+    pauseBtn.setText(text, font);
+    buttons.emplace_back(std::move(pauseBtn));
+
+    text.setString("Reset Camera");
+    resetBtn.setText(text, font);
+    buttons.emplace_back(std::move(resetBtn));
+
+    repositionButtons(buttons, options);
 }
 
 void Game::run()
 {
+    if (options.runTest)
+    {
+        options.gridWidth = (options.gridWidth < 10) ? 10 : options.gridWidth;
+        options.gridHeight = (options.gridHeight < 10) ? 10 : options.gridHeight;
+    }
+
     randomizeGrid(grid, options.gridWidth, options.gridHeight);
+
+    if (options.runTest)
+    {
+        clearGrid(grid);
+        editMode = CellEditMode::ON;
+        // Light-weight spaceship
+        editCell({ 3, 1 });
+        editCell({ 6, 1 });
+        editCell({ 7, 2 });
+        editCell({ 3, 3 });
+        editCell({ 7, 3 });
+        editCell({ 4, 4 });
+        editCell({ 5, 4 });
+        editCell({ 6, 4 });
+        editCell({ 7, 4 });
+        editMode = CellEditMode::NONE;
+    }
+
     initGUI();
 
     sf::Clock clock;
@@ -112,6 +188,7 @@ void Game::run()
     sf::Time accumulated;
     size_t frameIndex = 0;
     size_t updateIndex = 0;
+    bool incompleteUpdateAverage = true;
     while (window.isOpen())
     {
         const sf::Time elapsed = clock.restart();
@@ -119,111 +196,89 @@ void Game::run()
             accumulated += elapsed;
         
         frameDeltas[frameIndex] = elapsed.asSeconds();
-        frameIndex = ++frameIndex % kDeltas;
+        ++frameIndex;
+        frameIndex %= kDeltas;
 
         if (accumulated >= updateThreshold)
         {
-            updateDeltas[updateIndex] = accumulated.asSeconds();
-            updateIndex = ++updateIndex % kDeltas;
+            sf::Clock updateClock;
 
             update(updateThreshold);
+            
+            updateDeltas[updateIndex] = updateClock.getElapsedTime().asMilliseconds();
+            ++updateIndex;
+            if (updateIndex == kDeltas - 1)
+                incompleteUpdateAverage = false;
+            updateIndex %= kDeltas;
+
             accumulated -= updateThreshold;
         }
 
         if (frameIndex == kDeltas - 1)
         {
-            const float averageUpdate = std::accumulate(updateDeltas.begin(), updateDeltas.end(), 0.0f) / kDeltas;
+            if (incompleteUpdateAverage)
+                std::cout << "<" << kDeltas << " updates recorded.\n";
+            const float averageUpdate = static_cast<float>(std::accumulate(updateDeltas.begin(), updateDeltas.end(), 0)) / ((incompleteUpdateAverage) ? updateIndex : kDeltas);
             const float averageDraw = std::accumulate(frameDeltas.begin(), frameDeltas.end(), 0.0f) / kDeltas;
-            std::cout << "UPS: " << 1.0f / averageUpdate << ", FPS: " << 1.0f / averageDraw << "\n";
+            std::cout << "Avg. Update Time: " << averageUpdate << "ms, FPS: " << 1.0f / averageDraw << "\n";
         }
 
         draw();
-        inputHandler.handleEvents(window, *this, graphicsHandler);
+        input.handleEvents(window, *this, graphics);
     }
 }
-
-namespace
-{
-    unsigned int countAliveNeighbors(std::vector<unsigned char>& grid, size_t width, size_t height, size_t row, size_t col)
-    {
-        unsigned int aliveNeighbors = 0;
-
-        for (int deltaX = -1; deltaX <= 1; ++deltaX)
-        {
-            for (int deltaY = -1; deltaY <= 1; ++deltaY)
-            {
-                if (deltaX == 0 && deltaY == 0)
-                    continue;
-                const size_t y = (height + deltaY + row) % height; // Add height in case of negative
-                const size_t x = (width + col + deltaX) % width; // Add width in case of negative
-                const auto neighbor = grid[y * width + x];
-                if (neighbor)
-                    ++aliveNeighbors;
-            }
-        }
-
-        return aliveNeighbors;
-    }
-
-    void updateGridOnCPU(std::vector<unsigned char>& grid, size_t width, size_t height)
-    {
-        std::vector<unsigned char> result;
-        result.reserve(width * height);
-        for (size_t i = 0; i < width * height; ++i)
-            result.push_back(0);
-
-        for (size_t row = 0; row < height; ++row)
-        {
-            for (size_t col = 0; col < width; ++col)
-            {
-                const auto numAliveNeighbors = countAliveNeighbors(grid, width, height, row, col);
-                const size_t currentIndex = row * width + col;
-                if (grid[currentIndex])
-                {
-                    result[currentIndex] = (numAliveNeighbors == 2 || numAliveNeighbors == 3);
-                }
-                else
-                {
-                    result[currentIndex] = (numAliveNeighbors == 3);
-                }
-            }
-        }
-        grid = result;
-    }
-}
+extern void updateGridOnGPU(unsigned char* grid, size_t gridWidth, size_t gridHeight, size_t blockWidth, size_t blockHeight);
 
 void Game::update(const sf::Time& elapsed)
 {
+#ifndef UPDATE_ON_CPU
+#define UPDATE_ON_CPU 1
+#endif
+
+#if UPDATE_ON_CPU == 1
     updateGridOnCPU(grid, options.gridWidth, options.gridHeight);
+#else
+    updateGridOnGPU(&grid.front(), options.gridWidth, options.gridHeight, options.blockWidth, options.blockHeight);
+#endif
 }
 
 void Game::draw()
 {
     window.clear();
-    graphicsHandler.draw(window, *this);
+    graphics.draw(window, *this);
     window.display();
 }
 
-unsigned char Game::getCell(size_t column, size_t row) const
+unsigned char Game::getCell(const sf::Vector2<size_t>& location) const
 {
-    if (row >= options.gridHeight || column >= options.gridWidth)
+    if (location.y >= options.gridHeight || location.x >= options.gridWidth)
         throw std::invalid_argument{ "Invalid element coordinates." };
 
-    const size_t index = row * options.gridWidth + column;
+    const size_t index = location.y * options.gridWidth + location.x;
     if (grid.size() < index)
         throw std::logic_error{ "Bad grid state; too small for current grid dimensions." };
 
     return grid[index];
 }
 
-void Game::setCell(size_t column, size_t row, unsigned char value)
+void Game::editCell(const sf::Vector2<size_t>& location)
 {
-    if (row >= options.gridHeight || column >= options.gridWidth)
+    if (location.y >= options.gridHeight || location.x >= options.gridWidth)
         throw std::invalid_argument{ "Invalid element coordinates." };
 
-    const size_t index = row * options.gridWidth + column;
+    const size_t index = location.y * options.gridWidth + location.x;
     if (grid.size() < index)
         throw std::logic_error{ "Bad grid state; too small for current grid dimensions." };
 
-    grid[index] = value;
+    grid[index] = (editMode == CellEditMode::ON) ? 1 : 0;
+}
+
+void Game::setEditModeFromLocation(const sf::Vector2<size_t>& location)
+{
+    editMode = (getCell(location) == 1) ? CellEditMode::OFF : CellEditMode::ON;
+}
+
+std::unique_ptr<sf::Vector2<size_t>> Game::getOverlayCoordinates() const
+{
+    return cellCoordinatesFromPosition(getMousePositionOnGrid());
 }
