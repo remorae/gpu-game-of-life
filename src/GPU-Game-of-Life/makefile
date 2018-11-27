@@ -1,3 +1,4 @@
+CPU := 0
 target := life
 
 objs := gpu/Kernel.o gpu/Update.o gui/Button.o gui/Game.o gui/GraphicsHandler.o gui/InputHandler.o Utils.o NoGui.o main.o

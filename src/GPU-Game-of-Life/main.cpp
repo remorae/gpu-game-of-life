@@ -58,7 +58,7 @@ namespace
                 }
                 catch (const std::exception&)
                 {
-                    throw std::exception("Unknown parameter.");
+                    throw std::invalid_argument("Unknown parameter.");
                 }
             }
         }

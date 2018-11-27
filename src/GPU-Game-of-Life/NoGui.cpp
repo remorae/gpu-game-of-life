@@ -69,7 +69,7 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
 #if UPDATE_ON_CPU == 1
         updateGridOnCPU(grid, gridWidth, gridHeight);
 #else
-        updateGridOnGPU(&grid.front(), options.gridWidth, options.gridHeight, options.blockWidth, options.blockHeight);
+        updateGridOnGPU(&grid.front(), gridWidth, gridHeight, blockWidth, blockHeight);
 #endif
         const sf::Time elapsed = clock.getElapsedTime();
         totalTime += elapsed.asMilliseconds();

@@ -12,7 +12,7 @@
 
 struct GameConfig
 {
-    unsigned int screenWidth{ 600 };
+    unsigned int screenWidth{ 1000 };
     unsigned int screenHeight{ 600 };
     std::string title{ "GPU Game of Life" };
     size_t targetUPS{ 8 };
