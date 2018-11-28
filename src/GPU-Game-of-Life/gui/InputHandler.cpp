@@ -33,7 +33,23 @@ void InputHandler::handleEvents(sf::RenderWindow& window, Game& game, GraphicsHa
                 break;
 
             case sf::Event::KeyPressed:
-                //handleKeyDown(event);
+                switch (event.key.code)
+                {
+                    case sf::Keyboard::Left:
+                        game.pan(sf::Vector2i{ -1, 0 });
+                        break;
+                    case sf::Keyboard::Right:
+                        game.pan(sf::Vector2i{ 1, 0 });
+                        break;
+                    case sf::Keyboard::Up:
+                        game.pan(sf::Vector2i{ 0, -1 });
+                        break;
+                    case sf::Keyboard::Down:
+                        game.pan(sf::Vector2i{ 0, 1 });
+                        break;
+                    default:
+                        break;
+                }
                 break;
 
             case sf::Event::MouseWheelScrolled:
