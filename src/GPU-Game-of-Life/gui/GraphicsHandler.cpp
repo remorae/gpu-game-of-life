@@ -121,7 +121,9 @@ void GraphicsHandler::handlePan(const sf::Vector2f& delta)
 
 void GraphicsHandler::resetCamera(const sf::Vector2<size_t>& gridSize)
 {
-    const sf::Vector2f viewSize{ gridSize.x * options.cellWidth, gridSize.y * options.cellWidth };
+    // Make sure the view is always square to prevent stretching/squishing
+    size_t maxSide = std::max(gridSize.x, gridSize.y);
+    const sf::Vector2f viewSize{ maxSide * options.cellWidth, maxSide * options.cellWidth };
     gridView.setSize(viewSize);
     gridView.setCenter(viewSize.x / 2, viewSize.y / 2);
     zoomLevel = 1.0f;

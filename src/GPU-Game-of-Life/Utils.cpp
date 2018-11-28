@@ -86,3 +86,89 @@ void updateGridOnCPU(std::vector<unsigned char>& grid, size_t width, size_t heig
     }
     grid = result;
 }
+
+void setupTest(std::vector<unsigned char>& grid, size_t gridWidth, int test)
+{
+    clearGrid(grid);
+
+    switch (test)
+    {
+        case 1:
+            // Light-weight spaceship
+            grid[1 * gridWidth + 3] = 1;
+            grid[1 * gridWidth + 6] = 1;
+            grid[2 * gridWidth + 7] = 1;
+            grid[3 * gridWidth + 3] = 1;
+            grid[3 * gridWidth + 7] = 1;
+            grid[4 * gridWidth + 4] = 1;
+            grid[4 * gridWidth + 5] = 1;
+            grid[4 * gridWidth + 6] = 1;
+            grid[4 * gridWidth + 7] = 1;
+            break;
+        case 2:
+            // Gosper glider gun
+            grid[15 * gridWidth + 7] = 1;
+            grid[16 * gridWidth + 7] = 1;
+            grid[15 * gridWidth + 8] = 1;
+            grid[16 * gridWidth + 8] = 1;
+            grid[12 * gridWidth + 17] = 1;
+            grid[13 * gridWidth + 17] = 1;
+            grid[17 * gridWidth + 17] = 1;
+            grid[18 * gridWidth + 17] = 1;
+            grid[13 * gridWidth + 18] = 1;
+            grid[14 * gridWidth + 18] = 1;
+            grid[15 * gridWidth + 18] = 1;
+            grid[16 * gridWidth + 18] = 1;
+            grid[17 * gridWidth + 18] = 1;
+            grid[13 * gridWidth + 19] = 1;
+            grid[14 * gridWidth + 19] = 1;
+            grid[16 * gridWidth + 19] = 1;
+            grid[17 * gridWidth + 19] = 1;
+            grid[13 * gridWidth + 20] = 1;
+            grid[14 * gridWidth + 20] = 1;
+            grid[16 * gridWidth + 20] = 1;
+            grid[17 * gridWidth + 20] = 1;
+            grid[14 * gridWidth + 21] = 1;
+            grid[15 * gridWidth + 21] = 1;
+            grid[16 * gridWidth + 21] = 1;
+            grid[17 * gridWidth + 29] = 1;
+            grid[16 * gridWidth + 30] = 1;
+            grid[17 * gridWidth + 30] = 1;
+            grid[18 * gridWidth + 30] = 1;
+            grid[15 * gridWidth + 31] = 1;
+            grid[16 * gridWidth + 31] = 1;
+            grid[17 * gridWidth + 31] = 1;
+            grid[18 * gridWidth + 31] = 1;
+            grid[19 * gridWidth + 31] = 1;
+            grid[14 * gridWidth + 32] = 1;
+            grid[16 * gridWidth + 32] = 1;
+            grid[18 * gridWidth + 32] = 1;
+            grid[20 * gridWidth + 32] = 1;
+            grid[14 * gridWidth + 33] = 1;
+            grid[15 * gridWidth + 33] = 1;
+            grid[19 * gridWidth + 33] = 1;
+            grid[20 * gridWidth + 33] = 1;
+            grid[16 * gridWidth + 41] = 1;
+            grid[17 * gridWidth + 41] = 1;
+            grid[16 * gridWidth + 42] = 1;
+            grid[17 * gridWidth + 42] = 1;
+        default:
+            break;
+    }
+}
+
+void resizeGridForTest(size_t& gridWidth, size_t& gridHeight, int test)
+{
+    size_t newGridSize = 1;
+    switch (test)
+    {
+        case 1:
+            newGridSize = 10;
+        case 2:
+            newGridSize = 45;
+        default:
+            break;
+    }
+    gridWidth = std::max(gridWidth, newGridSize);
+    gridHeight = std::max(gridHeight, newGridSize);
+}

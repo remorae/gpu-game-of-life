@@ -156,29 +156,16 @@ void Game::initGUI()
 
 void Game::run()
 {
-    if (options.runTest)
+    if (options.runTest > 0)
     {
-        options.gridWidth = (options.gridWidth < 10) ? 10 : options.gridWidth;
-        options.gridHeight = (options.gridHeight < 10) ? 10 : options.gridHeight;
+        resizeGridForTest(options.gridWidth, options.gridHeight, options.runTest);
     }
 
     randomizeGrid(grid, options.gridWidth, options.gridHeight);
 
-    if (options.runTest)
+    if (options.runTest > 0)
     {
-        clearGrid(grid);
-        editMode = CellEditMode::ON;
-        // Light-weight spaceship
-        editCell({ 3, 1 });
-        editCell({ 6, 1 });
-        editCell({ 7, 2 });
-        editCell({ 3, 3 });
-        editCell({ 7, 3 });
-        editCell({ 4, 4 });
-        editCell({ 5, 4 });
-        editCell({ 6, 4 });
-        editCell({ 7, 4 });
-        editMode = CellEditMode::NONE;
+        setupTest(grid, options.gridWidth, options.runTest);
     }
 
     initGUI();
@@ -281,4 +268,9 @@ void Game::setEditModeFromLocation(const sf::Vector2<size_t>& location)
 std::unique_ptr<sf::Vector2<size_t>> Game::getOverlayCoordinates() const
 {
     return cellCoordinatesFromPosition(getMousePositionOnGrid());
+}
+
+void Game::pan(const sf::Vector2i& direction)
+{
+    graphics.handlePan({ static_cast<float>(direction.x) * options.arrowPanFactor, static_cast<float>(direction.y) * options.arrowPanFactor });
 }
