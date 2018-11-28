@@ -9,7 +9,7 @@ A graphical depiction of Conway’s Game of Life written in C++.
 * [x] Clear the existing grid
 * [x] Randomize the existing grid
 * [x] Display current UPS/FPS
-* [ ] Pre-built test cases
+* [x] Pre-built test cases
 * [ ] Stretch Goal: Control the speed of the simulation
 * [ ] Stretch Goal: Deploy “templates” of commonly-known entities in the Game of Life, e.g. gliders
 
