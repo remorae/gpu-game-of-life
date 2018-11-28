@@ -22,8 +22,6 @@ All update operations will occur on the GPU. This will allow for huge grid sizes
 
 ## Compilation
 
-Compilation:
-
 The makefile is in src/GPU-Game-of-Life/
 
 `make CPU=1` to compile for the CPU; `make CPU=0` or just `make` to compile for the GPU
@@ -37,7 +35,8 @@ You may also need to update `cclibraries`, `gpp`, and `cudaroot` if compiling on
 
 `./life blockWidth blockHeight gridWidth gridHeight [numPasses] [p] [t<1|2>]`
 
-Parameters: 
+Parameters:
+
 - `blockWidth`, `blockHeight`, `gridWidth`, and `gridHeight` must be positive integers.
 - Non-square grids will be stretched to fit the window if using the GUI.
 - `blockWidth` and `blockHeight` will be ignored if running on the CPU.
