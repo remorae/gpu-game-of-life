@@ -31,7 +31,20 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
     std::vector<unsigned char> grid;
     if (test > 0)
     {
+        std::cout << "Running test #" << test << ".\n";
         resizeGridForTest(gridWidth, gridHeight, test);
+        if (blockWidth >= gridWidth)
+            blockWidth = gridWidth / 2;
+        if (blockHeight >= gridHeight)
+            blockHeight = gridHeight / 2;
+        if (blockWidth < 1)
+            blockWidth = 1;
+        if (blockHeight < 1)
+            blockHeight = 1;
+        if (blockWidth == 1 && blockHeight == 1)
+        {
+            blockWidth = 2;
+        }
     }
 
     // Initialize grid
@@ -57,7 +70,7 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
     sf::Clock clock;
     for (pass = 0; pass < numPasses; ++pass)
     {
-        const auto previous = grid;
+        const std::vector<unsigned char> previous(grid);
         clock.restart();
 #if UPDATE_ON_CPU == 1
         updateGridOnCPU(grid, gridWidth, gridHeight);
@@ -79,7 +92,6 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
             std::cout << "Iteration: " << pass + 1 << "\n";
             printGrid(grid, gridWidth);
         }
-        ++pass;
     }
     std::cout << "Final state after " << pass << " passes:\n";
     printGrid(grid, gridWidth);

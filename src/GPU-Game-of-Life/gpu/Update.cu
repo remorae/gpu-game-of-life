@@ -14,6 +14,7 @@ void updateGridOnGPU(unsigned char* gameGrid,
 
 	// Step 1: Determine how many iterations it's going to take, along with an adjusted # of blocks per kernel call
 
+	cudaError_t error;
 	size_t maxNumBlocksX = (size_t)ceil((gameGridWidth) / (float)blockWidth);
 	size_t maxNumBlocksY = (size_t)ceil((gameGridHeight) / (float)blockHeight);
 	size_t iterationsNeeded = 1;
@@ -28,22 +29,42 @@ void updateGridOnGPU(unsigned char* gameGrid,
 		else
 			maxNumBlocksY /= 2;
 	}
+
+	//printf("Game grid: %lux%lu Block size: %lux%lu maxBlocksPerKernel: %lux%lu\n", gameGridWidth, gameGridHeight, blockWidth, blockHeight, maxNumBlocksX, maxNumBlocksY);
+	//printf("Iters: %lu blocksPerIter: %lu\n", iterationsNeeded, blocksPerIteration);
 	
 	// Step 2: Setup device memory and the necessary shared memory size as usual
 
-	unsigned char* d_grid;
-	cudaMalloc(&d_grid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
+	unsigned char* d_destGrid, d_srcGrid;
+	cudaMalloc(&d_srcGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+		printf("cudaMalloc error: %s\n", cudaGetErrorString(error));
+	cudaMalloc(&d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+		printf("cudaMalloc error: %s\n", cudaGetErrorString(error));
 	
-	cudaMemcpy(d_grid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_srcGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+		printf("cudaMemcpy h2d error: %s\n", cudaGetErrorString(error));
+	
+	cudaMemcpy(d_destGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+		printf("cudaMemcpy h2d error: %s\n", cudaGetErrorString(error));
 
 	const unsigned int sharedMemSize = ((blockWidth + 2) * (blockHeight + 2)) * sizeof(unsigned char);
+
+	//printf("Shared mem: %lu\n", (long unsigned)sharedMemSize);
 
 	// Step 3: Determine how many blocks are needed total in the X and Y directions.
 	// This can greatly reduce the number of blocks created when updating areas along the right and bottom sides of the grid.
 	// Essentially, the final call(s) in the X and Y directions have smaller CUDA grid size parameters.
  
-	const size_t blocksNeededX = (size_t)ceil(gameGridWidth / (float)(maxNumBlocksX * blockWidth));
-	const size_t blocksNeededY = (size_t)ceil(gameGridHeight / (float)(maxNumBlocksY * blockHeight));
+	const size_t blocksNeededX = (size_t)ceil(gameGridWidth / (float)blockWidth);
+	const size_t blocksNeededY = (size_t)ceil(gameGridHeight / (float)blockHeight);
 	const size_t iterationsNeededX = (size_t)ceil(blocksNeededX / (float)maxNumBlocksX);
 
 	// Step 4: Run the necessary number of kernel calls to update the grid
@@ -64,18 +85,27 @@ void updateGridOnGPU(unsigned char* gameGrid,
 
 		// Call the kernel
 
+		//printf("Iter %lu: @(%lu,%lu) blocks: %lux%lu\n", i, gridX, gridY, cudaGridWidth, cudaGridHeight);
+
    		const dim3 cudaGridDimensions(cudaGridWidth, cudaGridHeight, 1);
 
-		updateGrid<<<cudaGridDimensions, cudaBlockDimensions, sharedMemSize>>>(d_grid,
+		updateGrid<<<cudaGridDimensions, cudaBlockDimensions, sharedMemSize>>>(d_destGrid, d_srcGrid
 															gameGridWidth,
 															gameGridHeight,
 															gridX * maxNumBlocksX * blockWidth, // Offset for iteration
 															gridY * maxNumBlocksY * blockHeight // Offset for iteration
 															);
+		error = cudaGetLastError();
+		if (error != cudaSuccess)
+			printf("kernel error: %s\n", cudaGetErrorString(error));
 	}
 
 	// Step 5: Copy results back to host and return them
 	
-	cudaMemcpy(gameGrid, d_grid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyDeviceToHost);
-	cudaFree(d_grid);
+	cudaMemcpy(gameGrid, d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+	error = cudaGetLastError();
+	if (error != cudaSuccess)
+		printf("cudaMemcpy d2h error: %s\n", cudaGetErrorString(error));
+	cudaFree(d_destGrid);
+	cudaFree(d_srcGrid);
 }

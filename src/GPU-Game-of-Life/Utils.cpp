@@ -152,6 +152,7 @@ void setupTest(std::vector<unsigned char>& grid, size_t gridWidth, int test)
             grid[17 * gridWidth + 41] = 1;
             grid[16 * gridWidth + 42] = 1;
             grid[17 * gridWidth + 42] = 1;
+            break;
         default:
             break;
     }
@@ -164,8 +165,10 @@ void resizeGridForTest(size_t& gridWidth, size_t& gridHeight, int test)
     {
         case 1:
             newGridSize = 10;
+            break;
         case 2:
             newGridSize = 45;
+            break;
         default:
             break;
     }

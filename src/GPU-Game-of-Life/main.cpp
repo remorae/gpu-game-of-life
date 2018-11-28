@@ -127,8 +127,6 @@ int main(int argc, char* argv[])
     catch (const std::exception& ex)
     {
         std::cout << ex.what() << "\n";
-        std::cout << "Press ENTER...\n";
-        std::cin.get();
         return 1;
     }
 
@@ -148,7 +146,10 @@ int main(int argc, char* argv[])
         runIterations(gridWidth, gridHeight, blockWidth, blockHeight, numPasses, print, test);
     }
 
-    std::cout << "Press ENTER...\n";
-    std::cin.get();
+    if (gui)
+    {
+        std::cout << "Press ENTER...\n";
+        std::cin.get();
+    }
     return 0;
 }
