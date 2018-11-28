@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClInclude Include="gpu\Kernel.h" />
     <ClInclude Include="gpu\Methods.h" />
+    <ClInclude Include="gpu\Update.h" />
     <ClInclude Include="gui\Button.h" />
     <ClInclude Include="gui\Game.h" />
     <ClInclude Include="gui\GraphicsHandler.h" />
@@ -170,6 +171,7 @@
     <None Include="gpu\Kernel.cu" />
     <None Include="gpu\main.cu" />
     <None Include="gpu\Methods.cu" />
+    <None Include="gpu\Update.cu" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\FreeSans.ttf">

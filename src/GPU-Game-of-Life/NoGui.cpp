@@ -26,28 +26,20 @@ namespace
 
 extern void updateGridOnGPU(unsigned char* grid, size_t gridWidth, size_t gridHeight, size_t blockWidth, size_t blockHeight);
 
-void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_t blockHeight, size_t numPasses, bool print, bool test)
+void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_t blockHeight, size_t numPasses, bool print, int test)
 {
-    if (test)
-    {
-        gridWidth = (gridWidth < 10) ? 10 : gridWidth;
-        gridHeight = (gridHeight < 10) ? 10 : gridHeight;
-    }
     std::vector<unsigned char> grid;
-    randomizeGrid(grid, gridWidth, gridHeight);
-    if (test)
+    if (test > 0)
     {
-        clearGrid(grid);
-        // Light-weight spaceship
-        grid[1 * gridWidth + 3] = 1;
-        grid[1 * gridWidth + 6] = 1;
-        grid[2 * gridWidth + 7] = 1;
-        grid[3 * gridWidth + 3] = 1;
-        grid[3 * gridWidth + 7] = 1;
-        grid[4 * gridWidth + 4] = 1;
-        grid[4 * gridWidth + 5] = 1;
-        grid[4 * gridWidth + 6] = 1;
-        grid[4 * gridWidth + 7] = 1;
+        resizeGridForTest(gridWidth, gridHeight, test);
+    }
+
+    // Initialize grid
+    randomizeGrid(grid, gridWidth, gridHeight);
+    
+    if (test > 0)
+    {
+        setupTest(grid, gridWidth, test);
     }
 
     if (print)
@@ -60,30 +52,36 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
 #define UPDATE_ON_CPU 1
 #endif
 
-    sf::Int32 totalTime = 0;
-    size_t pass = 0;
-    bool runAgain = true;
-    while (runAgain)
+    sf::Time totalTime;
+    size_t pass;
+    sf::Clock clock;
+    for (pass = 0; pass < numPasses; ++pass)
     {
-        sf::Clock clock;
+        const auto previous = grid;
+        clock.restart();
 #if UPDATE_ON_CPU == 1
         updateGridOnCPU(grid, gridWidth, gridHeight);
 #else
-        updateGridOnGPU(&grid.front(), options.gridWidth, options.gridHeight, options.blockWidth, options.blockHeight);
+        updateGridOnGPU(&grid.front(), gridWidth, gridHeight, blockWidth, blockHeight);
 #endif
-        const sf::Time elapsed = clock.getElapsedTime();
-        totalTime += elapsed.asMilliseconds();
+        if (pass != 0)
+            totalTime += clock.getElapsedTime();
 
-        if (print)
+        if (grid == previous)
+        {
+            std::cout << "Stopping early due to stable grid state.\n";
+            ++pass;
+            break;
+        }
+
+        if (print && pass < numPasses - 1)
         {
             std::cout << "Iteration: " << pass + 1 << "\n";
             printGrid(grid, gridWidth);
         }
         ++pass;
-        if (numPasses > 0)
-        {
-            runAgain = (pass < numPasses);
-        }
     }
-    std::cout << "AVERAGE UPDATE TIME: " << totalTime / (double)pass << "ms for " << pass << " iterations.\n";
+    std::cout << "Final state after " << pass << " passes:\n";
+    printGrid(grid, gridWidth);
+    std::cout << "AVERAGE UPDATE TIME: " << totalTime.asMilliseconds() / (float)(pass - 1) << "ms for " << pass - 1 << " iterations.\n";
 }

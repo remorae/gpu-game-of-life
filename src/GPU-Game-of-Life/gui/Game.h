@@ -25,7 +25,8 @@ struct GameConfig
     sf::Color buttonTextColor{ sf::Color::White };
     sf::Color buttonBackgroundColor{ sf::Color::Blue };
     unsigned int buttonCharacterSize{ 24 };
-    bool runTest{ false };
+    int runTest{ 0 };
+    float arrowPanFactor{ 5.0f };
 };
 
 class Game
@@ -65,6 +66,7 @@ public:
     const std::vector<Button>& getButtons() const { return buttons; }
 
     void handleMouseMove(bool panning, const sf::Vector2f& distance);
+    void pan(const sf::Vector2i& direction);
     void handlePrimaryClick(const sf::Event& event);
 
 private:

@@ -1,3 +1,4 @@
+CPU := 0
 target := life
 
 objs := gpu/Kernel.o gpu/Update.o gui/Button.o gui/Game.o gui/GraphicsHandler.o gui/InputHandler.o Utils.o NoGui.o main.o
@@ -7,14 +8,14 @@ SFML_root := SFML-2.5.1-linux-gcc-x64
 
 #----- C++ compilation options ------
 gpp         := /usr/bin/g++ 
-ccflags     := -m64 -Wall -Werror -std=c++14 -D UPDATE_ON_CPU=$(CPU)
+ccflags     := -Wall -Werror -std=c++14 -D UPDATE_ON_CPU=$(CPU)
 cclib_paths := -L$(SFML_root)/lib
 ccinc_paths := -I$(SFML_root)/include
 cclibraries :=  $(SFML_root)/lib/libsfml-graphics.so.2.5.1 $(SFML_root)/lib/libsfml-window.so.2.5.1 $(SFML_root)/lib/libsfml-system.so.2.5.1
 
 #----- CUDA compilation options -----
 nvcc        := $(cudaroot)/nvcc
-cuflags     := -m64
+cuflags     :=
 culib_paths := -L$(cudaroot)/$(CUDALIB) -L$(nv_sdk)/C/lib  
 cuinc_paths := -I$(cudaroot)/include
 culibraries := -lcuda -lcudart

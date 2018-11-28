@@ -24,21 +24,29 @@ namespace
     void parsePasses(const std::string& arg, size_t& numPasses)
     {
         numPasses = std::stoul(arg, nullptr, 10);
+        if (numPasses == 0)
+            throw std::invalid_argument("numPasses must be positive.");
     }
 
-    void parseTest(const std::string& arg, bool& test)
+    void parseTest(const std::string& arg, int& test)
     {
-        if (arg == "t")
-        {
-            test = true;
-        }
-        else
-        {
+        if (arg.length() != 2)
             throw std::invalid_argument("Unknown parameter.");
+
+        switch (arg[1])
+        {
+            case '1':
+                test = 1;
+                break;
+            case '2':
+                test = 2;
+                break;
+            default:
+                throw std::invalid_argument("Unknown parameter.");
         }
     }
 
-    void parseOptionalParam(const std::string& arg, bool& print, size_t& numPasses, bool& test)
+    void parseOptionalParam(const std::string& arg, bool& print, size_t& numPasses, int& test)
     {
         try
         {
@@ -58,7 +66,7 @@ namespace
                 }
                 catch (const std::exception&)
                 {
-                    throw std::exception("Unknown parameter.");
+                    throw std::invalid_argument("Unknown parameter.");
                 }
             }
         }
@@ -69,7 +77,7 @@ int main(int argc, char* argv[])
 {
     bool gui = true;
     bool print = false;
-    bool test = false;
+    int test = 0;
     size_t numPasses = 0;
 
     size_t blockWidth = 32;
@@ -81,10 +89,10 @@ int main(int argc, char* argv[])
     {
         if (argc < 5)
         {
-            std::string msg("Invalid arguments: blockWidth blockHeight gridWidth gridHeight [numPasses] [p] [t]\n");
-            msg = msg + "numPasses: Set to a positive integer to disable the GUI and update the grid the given # of times.\n";
-            msg = msg + "p: Include to print grid each iteration when the GUI is disabled.\n";
-            msg = msg + "t: Include to create a simple test case rather than a random grid at startup.";
+            std::string msg("Invalid arguments: blockWidth blockHeight gridWidth gridHeight [numPasses] [p] [t<1|2>]\n");
+            msg = msg + "numPasses: Set to a positive integer to disable the GUI and update the grid the given # of times. e.g. 100\n";
+            msg = msg + "p: Include to print the grid every iteration when the GUI is disabled.\n";
+            msg = msg + "t#: Include to create a simple test case rather than a random grid at startup. e.g. t2";
             throw std::invalid_argument(msg);
         }
 
@@ -92,6 +100,15 @@ int main(int argc, char* argv[])
         blockHeight = std::stoul(argv[2], nullptr, 10);
         gridWidth = std::stoul(argv[3], nullptr, 10);
         gridHeight = std::stoul(argv[4], nullptr, 10);
+
+        if (blockWidth * blockHeight > 1024)
+        {
+            throw std::invalid_argument("blockWidth * blockHeight must be <= 1024.");
+        }
+        if (blockWidth == 0 || blockHeight == 0 || gridWidth == 0 || gridHeight == 0)
+        {
+            throw std::invalid_argument("First four parameters must be positive.");
+        }
 
         if (argc > 5)
         {
