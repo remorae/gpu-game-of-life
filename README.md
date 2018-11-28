@@ -1,5 +1,5 @@
 # GPU Game of Life
-A graphical depiction of Conway’s Game of Life written in C++.
+A CUDA-enabled version of Conway’s Game of Life written in C++.
 
 ## Features
 * [x] Pause and un-pause the simulation
