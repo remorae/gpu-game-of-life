@@ -31,7 +31,7 @@ __device__ int onBorder(int threadPos, int globalPos, int blockEdge, int gridEdg
 
 __global__ void updateGrid(unsigned char* destGrid, unsigned char* srcGrid, const int width, const int height, const int offsetX, const int offsetY)
 {
-	extern __shared__ int s_data[];
+	extern __shared__ unsigned char s_data[];
 	const int sharedMemDim_x = blockDim.x + 2;
 
 	const unsigned int iy = offsetY + blockIdx.y * blockDim.y + threadIdx.y; //row index

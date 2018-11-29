@@ -29,35 +29,26 @@ void updateGridOnGPU(unsigned char* gameGrid,
 		else
 			maxNumBlocksY /= 2;
 	}
-
-	//printf("Game grid: %lux%lu Block size: %lux%lu maxBlocksPerKernel: %lux%lu\n", gameGridWidth, gameGridHeight, blockWidth, blockHeight, maxNumBlocksX, maxNumBlocksY);
-	//printf("Iters: %lu blocksPerIter: %lu\n", iterationsNeeded, blocksPerIteration);
 	
 	// Step 2: Setup device memory and the necessary shared memory size as usual
 
-	unsigned char* d_destGrid, d_srcGrid;
-	cudaMalloc(&d_srcGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
-	error = cudaGetLastError();
+	unsigned char * d_destGrid, * d_srcGrid;
+	error = cudaMalloc(&d_srcGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
 	if (error != cudaSuccess)
 		printf("cudaMalloc error: %s\n", cudaGetErrorString(error));
-	cudaMalloc(&d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
-	error = cudaGetLastError();
+	error = cudaMalloc(&d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char));
 	if (error != cudaSuccess)
 		printf("cudaMalloc error: %s\n", cudaGetErrorString(error));
 	
-	cudaMemcpy(d_srcGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
-	error = cudaGetLastError();
+	error = cudaMemcpy(d_srcGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		printf("cudaMemcpy h2d error: %s\n", cudaGetErrorString(error));
 	
-	cudaMemcpy(d_destGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
-	error = cudaGetLastError();
+	error = cudaMemcpy(d_destGrid, gameGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		printf("cudaMemcpy h2d error: %s\n", cudaGetErrorString(error));
 
 	const unsigned int sharedMemSize = ((blockWidth + 2) * (blockHeight + 2)) * sizeof(unsigned char);
-
-	//printf("Shared mem: %lu\n", (long unsigned)sharedMemSize);
 
 	// Step 3: Determine how many blocks are needed total in the X and Y directions.
 	// This can greatly reduce the number of blocks created when updating areas along the right and bottom sides of the grid.
@@ -85,11 +76,9 @@ void updateGridOnGPU(unsigned char* gameGrid,
 
 		// Call the kernel
 
-		//printf("Iter %lu: @(%lu,%lu) blocks: %lux%lu\n", i, gridX, gridY, cudaGridWidth, cudaGridHeight);
-
    		const dim3 cudaGridDimensions(cudaGridWidth, cudaGridHeight, 1);
 
-		updateGrid<<<cudaGridDimensions, cudaBlockDimensions, sharedMemSize>>>(d_destGrid, d_srcGrid
+		updateGrid<<<cudaGridDimensions, cudaBlockDimensions, sharedMemSize>>>(d_destGrid, d_srcGrid,
 															gameGridWidth,
 															gameGridHeight,
 															gridX * maxNumBlocksX * blockWidth, // Offset for iteration
@@ -102,8 +91,7 @@ void updateGridOnGPU(unsigned char* gameGrid,
 
 	// Step 5: Copy results back to host and return them
 	
-	cudaMemcpy(gameGrid, d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyDeviceToHost);
-	error = cudaGetLastError();
+	error = cudaMemcpy(gameGrid, d_destGrid, gameGridWidth * gameGridHeight * sizeof(unsigned char), cudaMemcpyDeviceToHost);
 	if (error != cudaSuccess)
 		printf("cudaMemcpy d2h error: %s\n", cudaGetErrorString(error));
 	cudaFree(d_destGrid);
