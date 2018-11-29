@@ -59,7 +59,7 @@ __global__ void updateGrid(unsigned char* destGrid, unsigned char* srcGrid, cons
 			s_data[sharedIndex(tx, ty, sharedMemDim_x, 1, -1)] = srcGrid[globalIndex(ix, iy, width, height, 1, -1)];
 		}
 	}
-	else if (onBorder(ty, iy, blockDim.y, height))
+	if (onBorder(ty, iy, blockDim.y, height))
 	{
 		// S
 		s_data[sharedIndex(tx, ty, sharedMemDim_x, 0, 1)] = srcGrid[globalIndex(ix, iy, width, height, 0, 1)];

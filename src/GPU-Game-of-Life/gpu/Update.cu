@@ -15,14 +15,12 @@ void updateGridOnGPU(unsigned char* gameGrid,
 	// Step 1: Determine how many iterations it's going to take, along with an adjusted # of blocks per kernel call
 
 	cudaError_t error;
-	size_t maxNumBlocksX = (size_t)ceil((gameGridWidth) / (float)blockWidth);
-	size_t maxNumBlocksY = (size_t)ceil((gameGridHeight) / (float)blockHeight);
-	size_t iterationsNeeded = 1;
+	size_t maxNumBlocksX = (size_t)ceil(gameGridWidth / (float)blockWidth);
+	size_t maxNumBlocksY = (size_t)ceil(gameGridHeight / (float)blockHeight);
 	size_t blocksPerIteration = maxNumBlocksX * maxNumBlocksY;
 
 	while (blocksPerIteration > 65536)
 	{
-		++iterationsNeeded;
 		blocksPerIteration /= 2;
 		if (maxNumBlocksY == 1)
 			maxNumBlocksX /= 2;
@@ -57,6 +55,7 @@ void updateGridOnGPU(unsigned char* gameGrid,
 	const size_t blocksNeededX = (size_t)ceil(gameGridWidth / (float)blockWidth);
 	const size_t blocksNeededY = (size_t)ceil(gameGridHeight / (float)blockHeight);
 	const size_t iterationsNeededX = (size_t)ceil(blocksNeededX / (float)maxNumBlocksX);
+	const size_t iterationsNeeded = iterationsNeededX * (size_t)ceil(blocksNeededY / (float)maxNumBlocksY);
 
 	// Step 4: Run the necessary number of kernel calls to update the grid
 
@@ -77,6 +76,8 @@ void updateGridOnGPU(unsigned char* gameGrid,
 		// Call the kernel
 
    		const dim3 cudaGridDimensions(cudaGridWidth, cudaGridHeight, 1);
+
+		//printf("%lu: @(%lu,%lu), grid %lux%lu, block %lux%lu\n", i, gridX, gridY, cudaGridWidth, cudaGridHeight, blockWidth, blockHeight);
 
 		updateGrid<<<cudaGridDimensions, cudaBlockDimensions, sharedMemSize>>>(d_destGrid, d_srcGrid,
 															gameGridWidth,
