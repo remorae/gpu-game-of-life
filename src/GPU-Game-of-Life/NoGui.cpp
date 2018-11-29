@@ -33,19 +33,11 @@ void runIterations(size_t gridWidth, size_t gridHeight, size_t blockWidth, size_
     {
         std::cout << "Running test #" << test << ".\n";
         resizeGridForTest(gridWidth, gridHeight, test);
-        if (blockWidth >= gridWidth)
-            blockWidth = gridWidth / 2;
-        if (blockHeight >= gridHeight)
-            blockHeight = gridHeight / 2;
-        if (blockWidth < 1)
-            blockWidth = 1;
-        if (blockHeight < 1)
-            blockHeight = 1;
-        if (blockWidth == 1 && blockHeight == 1)
-        {
-            blockWidth = 2;
-        }
     }
+    blockWidth = std::min(blockWidth, gridWidth);
+    blockHeight = std::min(blockHeight, gridHeight);
+    blockWidth = std::max(blockWidth, size_t{ 1 });
+    blockHeight = std::max(blockHeight, size_t{ 1 });
 
     // Initialize grid
     randomizeGrid(grid, gridWidth, gridHeight);

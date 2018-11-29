@@ -160,6 +160,10 @@ void Game::run()
     {
         resizeGridForTest(options.gridWidth, options.gridHeight, options.runTest);
     }
+    options.blockWidth = std::min(options.blockWidth, options.gridWidth);
+    options.blockHeight = std::min(options.blockHeight, options.gridHeight);
+    options.blockWidth = std::max(options.blockWidth, size_t{ 1 });
+    options.blockHeight = std::max(options.blockHeight, size_t{ 1 });
 
     randomizeGrid(grid, options.gridWidth, options.gridHeight);
 
